@@ -2,7 +2,7 @@ import { application } from "../types/application";
 const firestore = require("../utils/firestore");
 const logger = require("../utils/logger");
 const ApplicationsModel = firestore.collection("applicants");
-const { APPLICATION_STATUS_TYPES, NUDGE_APPLICATION_STATUS } = require("../constants/application");
+const { APPLICATION_STATUS_TYPES, APPLICATION_STATUS } = require("../constants/application");
 const { convertDaysToMilliseconds } = require("../utils/time");
 
 const getAllApplications = async (limit: number, lastDocId?: string) => {
@@ -146,17 +146,17 @@ const nudgeApplication = async ({ applicationId, userId }: { applicationId: stri
     const applicationDoc = await transaction.get(applicationRef);
 
     if (!applicationDoc.exists) {
-      return { status: NUDGE_APPLICATION_STATUS.notFound };
+      return { status: APPLICATION_STATUS.notFound };
     }
 
     const application = applicationDoc.data();
 
     if (application.userId !== userId) {
-      return { status: NUDGE_APPLICATION_STATUS.unauthorized };
+      return { status: APPLICATION_STATUS.unauthorized };
     }
 
     if (application.status !== APPLICATION_STATUS_TYPES.PENDING) {
-      return { status: NUDGE_APPLICATION_STATUS.notPending };
+      return { status: APPLICATION_STATUS.notPending };
     }
 
     const lastNudgeAt = application.lastNudgeAt;
@@ -165,7 +165,7 @@ const nudgeApplication = async ({ applicationId, userId }: { applicationId: stri
       const timeDifference = currentTime - lastNudgeTimestamp;
 
       if (timeDifference <= twentyFourHoursInMilliseconds) {
-        return { status: NUDGE_APPLICATION_STATUS.tooSoon };
+        return { status: APPLICATION_STATUS.tooSoon };
       }
     }
 
@@ -179,7 +179,7 @@ const nudgeApplication = async ({ applicationId, userId }: { applicationId: stri
     });
 
     return {
-      status: NUDGE_APPLICATION_STATUS.success,
+      status: APPLICATION_STATUS.success,
       nudgeCount: updatedNudgeCount,
       lastNudgeAt: newLastNudgeAt,
     };
@@ -187,6 +187,55 @@ const nudgeApplication = async ({ applicationId, userId }: { applicationId: stri
 
   return result;
 };
+
+const addApplicationFeedback = async ({
+  applicationId,
+  status,
+  feedback,
+  reviewerName,
+}: {
+  applicationId: string;
+  status: string;
+  feedback?: string;
+  reviewerName: string;
+}) => {
+  const addApplicationFeedbackResult = await firestore.runTransaction(async (transaction) => {
+    const applicationRef = ApplicationsModel.doc(applicationId);
+    const applicationDoc = await transaction.get(applicationRef);
+
+    if (!applicationDoc.exists) {
+      return { status: APPLICATION_STATUS.notFound };
+    }
+
+    const application = applicationDoc.data();
+    const existingFeedback = application.feedback || [];
+
+    const feedbackItem: {
+      status: string;
+      feedback?: string;
+      reviewerName: string;
+      createdAt: string;
+    } = {
+      status,
+      reviewerName,
+      createdAt: new Date().toISOString(),
+    };
+
+    if (feedback && feedback.trim()) {
+      feedbackItem.feedback = feedback.trim();
+    }
+
+    const updatedFeedback = [...existingFeedback, feedbackItem];
+
+    transaction.update(applicationRef, {
+      feedback: updatedFeedback,
+      status,
+    });
+
+    return { status: APPLICATION_STATUS.success };
+  });
+   return addApplicationFeedbackResult;
+ };
 
 module.exports = {
   getAllApplications,
@@ -196,4 +245,5 @@ module.exports = {
   getApplicationsBasedOnStatus,
   getApplicationById,
   nudgeApplication,
+  addApplicationFeedback,
 };
