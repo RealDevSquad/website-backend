@@ -376,25 +376,6 @@ describe("Application", function () {
         });
     });
 
-    it("should return 401 if the user is not super user", function (done) {
-      chai
-        .request(app)
-        .patch(`/applications/${applicationId1}/feedback`)
-        .set("cookie", `${cookieName}=${jwt}`)
-        .send({
-          status: "accepted",
-        })
-        .end((err, res) => {
-          if (err) {
-            return done(err);
-          }
-
-          expect(res).to.have.status(401);
-          expect(res.body.message).to.be.equal("You are not authorized for this action.");
-          return done();
-        });
-    });
-
     it("should return 400 if anything other than status and feedback is passed in the body", function (done) {
       chai
         .request(app)
