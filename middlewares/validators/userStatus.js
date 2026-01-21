@@ -1,9 +1,8 @@
 const Joi = require("joi");
 const { userState, CANCEL_OOO } = require("../../constants/userStatus");
-const threeDaysInMilliseconds = 172800000;
 
 const validateUserStatusData = async (todaysTime, req, res, next) => {
-  const validUserStates = [userState.OOO, userState.ONBOARDING];
+  const validUserStates = [userState.ONBOARDING];
 
   const statusSchema = Joi.object({
     currentStatus: Joi.object().keys({
@@ -16,41 +15,7 @@ const validateUserStatusData = async (todaysTime, req, res, next) => {
         .min(todaysTime)
         .required()
         .error(new Error(`The 'from' field must have a value that is either today or a date that follows today.`)),
-      until: Joi.any().when("state", {
-        is: userState.OOO,
-        then: Joi.number()
-          .min(Joi.ref("from"))
-          .required()
-          .error(
-            new Error(
-              `The 'until' field must have a value that is either 'from' date or a date that comes after 'from' day.`
-            )
-          ),
-        otherwise: Joi.optional(),
-      }),
-      message: Joi.when("state", {
-        is: userState.IDLE,
-        then: Joi.string()
-          .required()
-          .error(new Error(`The value for the 'message' field is mandatory for IDLE State.`)),
-        otherwise: Joi.when(Joi.ref("state"), {
-          is: userState.OOO,
-          then: Joi.when(Joi.ref("until"), {
-            is: Joi.number().greater(
-              Joi.ref("from", {
-                adjust: (value) => value + threeDaysInMilliseconds,
-              })
-            ),
-            then: Joi.string()
-              .optional()
-              .error(
-                new Error(`The value for the 'message' field is mandatory when State is OOO for more than three days.`)
-              ),
-            otherwise: Joi.required(),
-          }),
-          otherwise: Joi.optional(),
-        }),
-      }),
+      message: Joi.string().allow("").optional(),
     }),
     monthlyHours: Joi.object().keys({
       committed: Joi.number().required(),
