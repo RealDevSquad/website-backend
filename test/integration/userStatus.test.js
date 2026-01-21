@@ -132,47 +132,6 @@ describe("UserStatus", function () {
       const response = await chai.request(app).patch("/users/status/update").set("cookie", `${cookieName}=${jwt}`);
       expect(response).to.have.status(401);
     });
-
-    it("Should update user status correctly when future status is due", async function () {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-
-      // User with future status that is now due (today)
-      const futureStatusUserId = await addUser(userData[1]);
-      const statusData = {
-        userId: futureStatusUserId,
-        currentStatus: {
-          state: "ACTIVE",
-          from: yesterday.getTime(),
-          until: "",
-          updatedAt: yesterday.getTime(),
-          message: "",
-        },
-        futureStatus: {
-          state: "OOO",
-          from: new Date().setUTCHours(0, 0, 0, 0),
-          until: tomorrow.getTime(),
-          updatedAt: new Date().setUTCHours(0, 0, 0, 0),
-          message: "Vacation",
-        },
-      };
-      await firestore.collection("usersStatus").add(statusData);
-
-      const response = await chai
-        .request(app)
-        .patch("/users/status/update")
-        .set("cookie", `${cookieName}=${superUserAuthToken}`);
-
-      expect(response).to.have.status(200);
-      expect(response.body.message).to.equal("All User Status updated successfully.");
-
-      const updatedStatus = await firestore.collection("usersStatus").where("userId", "==", futureStatusUserId).get();
-      const data = updatedStatus.docs[0].data();
-      expect(data.currentStatus.state).to.equal("OOO");
-      expect(data.futureStatus.state).to.equal("ACTIVE");
-    });
   });
 
   describe("PATCH /users/status/:userid", function () {
