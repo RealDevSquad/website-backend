@@ -23,6 +23,7 @@ describe("nudgeApplication", () => {
   let boomBadRequest: sinon.SinonSpy;
   let boomTooManyRequests: sinon.SinonSpy;
   let boomBadImplementation: sinon.SinonSpy;
+  let nudgeApplicationStub: sinon.SinonStub;
 
   const mockApplicationId = "test-application-id-123";
   const mockUserId = "test-user-id-456";
@@ -55,6 +56,8 @@ describe("nudgeApplication", () => {
         badImplementation: boomBadImplementation,
       },
     };
+
+    nudgeApplicationStub = sinon.stub(ApplicationModel, "nudgeApplication");
   });
 
   afterEach(() => {
@@ -69,7 +72,7 @@ describe("nudgeApplication", () => {
         lastNudgeAt: new Date().toISOString(),
       };
 
-      const nudgeApplicationStub = sinon.stub(ApplicationModel, "nudgeApplication").resolves(mockResult);
+      nudgeApplicationStub.resolves(mockResult);
 
       await applicationsController.nudgeApplication(req as CustomRequest, res as CustomResponse);
 
@@ -92,7 +95,7 @@ describe("nudgeApplication", () => {
         lastNudgeAt: new Date().toISOString(),
       };
 
-      const nudgeApplicationStub = sinon.stub(ApplicationModel, "nudgeApplication").resolves(mockResult);
+      nudgeApplicationStub.resolves(mockResult);
 
       await applicationsController.nudgeApplication(req as CustomRequest, res as CustomResponse);
 
@@ -115,7 +118,7 @@ describe("nudgeApplication", () => {
         lastNudgeAt: new Date().toISOString(),
       };
 
-      sinon.stub(ApplicationModel, "nudgeApplication").resolves(mockResult);
+      nudgeApplicationStub.resolves(mockResult);
 
       await applicationsController.nudgeApplication(req as CustomRequest, res as CustomResponse);
 
@@ -130,7 +133,7 @@ describe("nudgeApplication", () => {
         status: "notFound",
       };
 
-      sinon.stub(ApplicationModel, "nudgeApplication").resolves(mockResult);
+      nudgeApplicationStub.resolves(mockResult);
 
       await applicationsController.nudgeApplication(req as CustomRequest, res as CustomResponse);
 
@@ -144,7 +147,7 @@ describe("nudgeApplication", () => {
         status: "unauthorized",
       };
 
-      sinon.stub(ApplicationModel, "nudgeApplication").resolves(mockResult);
+      nudgeApplicationStub.resolves(mockResult);
 
       await applicationsController.nudgeApplication(req as CustomRequest, res as CustomResponse);
 
@@ -158,7 +161,7 @@ describe("nudgeApplication", () => {
         status: "tooSoon",
       };
 
-      sinon.stub(ApplicationModel, "nudgeApplication").resolves(mockResult);
+      nudgeApplicationStub.resolves(mockResult);
 
       await applicationsController.nudgeApplication(req as CustomRequest, res as CustomResponse);
 
@@ -172,7 +175,7 @@ describe("nudgeApplication", () => {
         status: "tooSoon",
       };
 
-      sinon.stub(ApplicationModel, "nudgeApplication").resolves(mockResult);
+      nudgeApplicationStub.resolves(mockResult);
 
       await applicationsController.nudgeApplication(req as CustomRequest, res as CustomResponse);
 
@@ -186,12 +189,139 @@ describe("nudgeApplication", () => {
         status: "notPending",
       };
 
-      sinon.stub(ApplicationModel, "nudgeApplication").resolves(mockResult);
+      nudgeApplicationStub.resolves(mockResult);
 
       await applicationsController.nudgeApplication(req as CustomRequest, res as CustomResponse);
 
       expect(boomBadRequest.calledOnce).to.be.true;
       expect(boomBadRequest.firstCall.args[0]).to.equal(APPLICATION_ERROR_MESSAGES.NUDGE_ONLY_PENDING_ALLOWED);
+      expect(jsonSpy.notCalled).to.be.true;
+    });
+  });
+});
+
+describe("submitApplicationFeedback", () => {
+  let req: Partial<CustomRequest>;
+  let res: Partial<CustomResponse> & {
+    json: sinon.SinonSpy;
+    boom: {
+      notFound: sinon.SinonSpy;
+      badImplementation: sinon.SinonSpy;
+    };
+  };
+  let jsonSpy: sinon.SinonSpy;
+  let boomNotFound: sinon.SinonSpy;
+  let boomBadImplementation: sinon.SinonSpy;
+  let addApplicationFeedbackStub: sinon.SinonStub;
+
+  const mockApplicationId = "test-application-id-123";
+  const mockUsername = "superuser";
+  const mockFeedback = "Great application!";
+  const mockStatus = "accepted";
+
+  beforeEach(() => {
+    jsonSpy = sinon.spy();
+    boomNotFound = sinon.spy();
+    boomBadImplementation = sinon.spy();
+
+    req = {
+      params: {
+        applicationId: mockApplicationId,
+      },
+      body: {
+        status: mockStatus,
+        feedback: mockFeedback,
+      },
+      userData: {
+        id: "superuser-id",
+        username: mockUsername,
+      },
+    };
+
+    res = {
+      json: jsonSpy,
+      boom: {
+        notFound: boomNotFound,
+        badImplementation: boomBadImplementation,
+      },
+    };
+
+    addApplicationFeedbackStub = sinon.stub(ApplicationModel, "addApplicationFeedback");
+  });
+
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  describe("Success cases", () => {
+    it("should successfully submit application feedback", async () => {
+      const mockResult = {
+        status: "success",
+      };
+
+      addApplicationFeedbackStub.resolves(mockResult);
+
+      await applicationsController.submitApplicationFeedback(req as CustomRequest, res as CustomResponse);
+
+      expect(addApplicationFeedbackStub.calledOnce).to.be.true;
+      expect(addApplicationFeedbackStub.firstCall.args[0]).to.deep.equal({
+        applicationId: mockApplicationId,
+        status: mockStatus,
+        feedback: mockFeedback,
+        reviewerName: mockUsername,
+      });
+
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.firstCall.args[0].message).to.equal(API_RESPONSE_MESSAGES.FEEDBACK_SUBMITTED_SUCCESS);
+    });
+
+    it("should successfully submit application feedback without optional feedback text", async () => {
+      req.body = {
+        status: mockStatus,
+      };
+
+      const mockResult = {
+        status: "success",
+      };
+
+      addApplicationFeedbackStub.resolves(mockResult);
+
+      await applicationsController.submitApplicationFeedback(req as CustomRequest, res as CustomResponse);
+
+      expect(addApplicationFeedbackStub.calledOnce).to.be.true;
+      expect(addApplicationFeedbackStub.firstCall.args[0]).to.deep.equal({
+        applicationId: mockApplicationId,
+        status: mockStatus,
+        feedback: undefined,
+        reviewerName: mockUsername,
+      });
+
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.firstCall.args[0].message).to.equal(API_RESPONSE_MESSAGES.FEEDBACK_SUBMITTED_SUCCESS);
+    });
+  });
+
+  describe("Error cases", () => {
+    it("should return application not found error", async () => {
+      const mockResult = {
+        status: "notFound",
+      };
+
+      addApplicationFeedbackStub.resolves(mockResult);
+
+      await applicationsController.submitApplicationFeedback(req as CustomRequest, res as CustomResponse);
+
+      expect(boomNotFound.calledOnce).to.be.true;
+      expect(boomNotFound.firstCall.args[0]).to.equal("Application not found");
+      expect(jsonSpy.notCalled).to.be.true;
+    });
+
+    it("should return internal server error when an unexpected error occurs", async () => {
+      addApplicationFeedbackStub.rejects(new Error("Database error"));
+
+      await applicationsController.submitApplicationFeedback(req as CustomRequest, res as CustomResponse);
+
+      expect(boomBadImplementation.calledOnce).to.be.true;
       expect(jsonSpy.notCalled).to.be.true;
     });
   });
