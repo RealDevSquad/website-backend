@@ -75,11 +75,10 @@ const activeStatus = {
   },
 };
 
-const generateUserStatusData = (state, updatedAt, from, until = "", message = "") => {
+const generateUserStatusData = (state, updatedAt, from, until = "") => {
   const data = {
     currentStatus: {
       state,
-      message,
       from,
       updatedAt,
     },

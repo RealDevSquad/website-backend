@@ -15,7 +15,6 @@ const validateUserStatusData = async (todaysTime, req, res, next) => {
         .min(todaysTime)
         .required()
         .error(new Error(`The 'from' field must have a value that is either today or a date that follows today.`)),
-      message: Joi.string().allow("").optional(),
     }),
     monthlyHours: Joi.object().keys({
       committed: Joi.number().required(),
