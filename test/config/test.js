@@ -12,6 +12,7 @@ module.exports = {
   enableConsoleLogs: true,
   discordUnverifiedRoleId: "1234567890",
   discordDeveloperRoleId: "9876543210",
+  discordNewRoleId: "1111111111",
   discordNewComersChannelId: "709080951824842783",
   discordMavenRoleId: "1212121212",
   discordMissedUpdatesRoleId: "<discordMissedUpdatesRoleId>",
@@ -59,6 +60,7 @@ module.exports = {
     },
     rdsUi: {
       baseUrl: "https://realdevsquad.com",
+      newSignupUrl: "https://www.realdevsquad.com/new-signup",
       routes: {
         authRedirection: "/goto",
       },
@@ -79,6 +81,7 @@ module.exports = {
   },
 
   cors: {
+    // eslint-disable-next-line security/detect-unsafe-regex
     allowedOrigins: /(https:\/\/([a-zA-Z0-9-_]+\.)?realdevsquad\.com$)|(localhost)/, // Allow realdevsquad.com, *.realdevsquad.com and localhost for non-production envs
   },
 
@@ -299,9 +302,7 @@ module.exports = {
     },
   },
 
-  routesCacheTTL: {
-    "/members": 900,
-  },
+  routesCacheTTL: {},
 
   githubAccessToken: "GITHUB_PERSONAL_ACCESS_TOKEN",
 

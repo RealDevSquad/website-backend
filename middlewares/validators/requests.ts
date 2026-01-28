@@ -1,8 +1,8 @@
 import joi from "joi";
 import { NextFunction } from "express";
 import { REQUEST_STATE, REQUEST_TYPE } from "../../constants/requests";
-import { OooRequestCreateRequest, OooRequestResponse } from "../../types/oooRequest";
-import { createOooStatusRequestValidator } from "./oooRequests";
+import { AcknowledgeOooRequest, OooRequestCreateRequest, OooRequestResponse } from "../../types/oooRequest";
+import { acknowledgeOooRequestValidator, createOooStatusRequestValidator } from "./oooRequests";
 import { createExtensionRequestValidator } from "./extensionRequestsv2";
 import {createTaskRequestValidator} from "./taskRequests";
 import { ExtensionRequestRequest, ExtensionRequestResponse } from "../../types/extensionRequests";
@@ -81,17 +81,21 @@ export const updateRequestsMiddleware = async (
 
 export const getRequestsMiddleware = async (req: OooRequestCreateRequest, res: OooRequestResponse, next: NextFunction) => {
   const schema = joi.object().keys({
-    dev: joi.bool().sensitive().optional(), // TODO: Remove this validator once feature is tested and ready to be used
     id: joi.string().optional(),
     type: joi
       .string()
       .valid(REQUEST_TYPE.OOO, REQUEST_TYPE.EXTENSION, REQUEST_TYPE.TASK, REQUEST_TYPE.ALL, REQUEST_TYPE.ONBOARDING)
       .optional(),
     requestedBy: joi.string().insensitive().optional(),
-    state: joi
+    state: joi 
       .string()
       .valid(REQUEST_STATE.APPROVED, REQUEST_STATE.PENDING, REQUEST_STATE.REJECTED)
       .optional(),
+    status: joi
+      .string()
+      .valid(REQUEST_STATE.APPROVED, REQUEST_STATE.PENDING, REQUEST_STATE.REJECTED)
+      .optional(),
+    dev: joi.boolean().optional(),
     page: joi.number().integer().min(0).when("next", {
       is: joi.exist(),
       then: joi.forbidden().messages({
@@ -125,13 +129,13 @@ export const getRequestsMiddleware = async (req: OooRequestCreateRequest, res: O
 /**
  * Validates update requests based on their type.
  * 
- * @param {UpdateOnboardingExtensionRequest} req - Request object.
+ * @param {UpdateOnboardingExtensionRequest | AcknowledgeOooRequest} req - Request object.
  * @param {CustomResponse} res - Response object.
  * @param {NextFunction} next - Next middleware if valid.
  * @returns {Promise<void>} Resolves or sends errors.
  */
 export const updateRequestValidator = async (
-  req: UpdateOnboardingExtensionRequest,
+  req: UpdateOnboardingExtensionRequest | AcknowledgeOooRequest,
   res: CustomResponse,
   next: NextFunction
   ): Promise<void> => {
@@ -141,6 +145,9 @@ export const updateRequestValidator = async (
           await updateOnboardingExtensionRequestValidator(
             req, 
             res as OnboardingExtensionResponse, next);
+          break;
+      case REQUEST_TYPE.OOO:
+          await acknowledgeOooRequestValidator(req as AcknowledgeOooRequest, res as OooRequestResponse, next);
           break;
       default:
           return res.boom.badRequest("Invalid type");

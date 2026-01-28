@@ -1,6 +1,7 @@
 const chai = require("chai");
 const expect = chai.expect;
 const sinon = require("sinon");
+const config = require("config");
 const firestore = require("../../../utils/firestore");
 const photoVerificationModel = firestore.collection("photo-verification");
 const discordRoleModel = firestore.collection("discord-roles");
@@ -66,6 +67,7 @@ const { generateUserStatusData } = require("../../fixtures/userStatus/userStatus
 const { userState } = require("../../../constants/userStatus");
 const { REQUEST_TYPE, REQUEST_STATE } = require("../../../constants/requests");
 const { createRequest } = require("../../../models/requests");
+const getSundayGapFixture = require("../../fixtures/missedUpdates/sundayGap");
 
 chai.should();
 
@@ -581,7 +583,9 @@ describe("discordactions", function () {
       addedUers = await Promise.all(addedUersPromise);
 
       const addedUsersStatusPromise = usersStatusData.map(async (data, index) => {
-        const { id } = addedUers[index];
+        // eslint-disable-next-line security/detect-object-injection
+        const user = addedUers[index] || {};
+        const { id } = user;
         const statusData = { ...data, userId: id };
         const { id: userStatusId } = await userStatusCollection.add(statusData);
         return { ...statusData, id: userStatusId };
@@ -690,6 +694,7 @@ describe("discordactions", function () {
     let userNotInDiscord;
     let activeUserId;
     let activeUserWithProgressUpdates;
+    let activeMissedUpdatesUserId;
 
     beforeEach(async function () {
       idleUser = { ...userData[9], discordId: getDiscordMembers[0].user.id };
@@ -708,6 +713,7 @@ describe("discordactions", function () {
         await addUser(userNotInDiscord),
       ]);
       activeUserId = userIdList[2];
+      activeMissedUpdatesUserId = userIdList[1];
       await Promise.all([
         await userStatusModel.updateUserStatus(userIdList[0], idleUserStatus),
         await userStatusModel.updateUserStatus(userIdList[1], activeUserStatus),
@@ -718,10 +724,13 @@ describe("discordactions", function () {
       const tasksPromise = [];
 
       for (let index = 0; index < 4; index++) {
-        const task = tasksData[index];
+        // eslint-disable-next-line security/detect-object-injection
+        const task = tasksData[index] || {};
+        // eslint-disable-next-line security/detect-object-injection
+        const assigneeId = userIdList[index] || null;
         const validTask = {
           ...task,
-          assignee: userIdList[index],
+          assignee: assigneeId,
           startedOn: (new Date().getTime() - convertDaysToMilliseconds(7)) / 1000,
           endsOn: (new Date().getTime() + convertDaysToMilliseconds(4)) / 1000,
           status: TASK_STATUS.IN_PROGRESS,
@@ -756,6 +765,7 @@ describe("discordactions", function () {
       expect(result.tasks).to.equal(4);
       expect(result.missedUpdatesTasks).to.not.equal(undefined);
       expect(result.missedUpdatesTasks).to.equal(3);
+      expect(result.filteredByOoo).to.equal(1);
       expect(result.usersToAddRole.includes(activeUserWithMissedProgressUpdates.discordId)).to.equal(true);
       expect(result.usersToAddRole.includes(idleUser.discordId)).to.equal(true);
     });
@@ -764,6 +774,17 @@ describe("discordactions", function () {
       const result = await getMissedProgressUpdatesUsers();
       expect(result).to.be.an("object");
       expect(result.usersToAddRole).to.not.contain(userNotInDiscord.discordId);
+    });
+
+    it("should exclude users within the post-OOO grace window", async function () {
+      const graceTimestamp = Date.now() - convertDaysToMilliseconds(2);
+      const snapshot = await userStatusCollection.where("userId", "==", activeMissedUpdatesUserId).limit(1).get();
+      const [doc] = snapshot.docs;
+      await doc.ref.update({ lastOooUntil: graceTimestamp });
+
+      const result = await getMissedProgressUpdatesUsers();
+      expect(result.usersToAddRole).to.not.contain(activeUserWithMissedProgressUpdates.discordId);
+      expect(result.filteredByOoo).to.equal(2);
     });
 
     it("should not list of users when exception days are added", async function () {
@@ -783,6 +804,7 @@ describe("discordactions", function () {
         tasks: 4,
         missedUpdatesTasks: 0,
         usersToAddRole: [],
+        filteredByOoo: 0,
       });
     });
 
@@ -795,6 +817,7 @@ describe("discordactions", function () {
         tasks: 0,
         missedUpdatesTasks: 0,
         usersToAddRole: [],
+        filteredByOoo: 0,
       });
     });
 
@@ -818,6 +841,7 @@ describe("discordactions", function () {
         tasks: 5,
         missedUpdatesTasks: 0,
         usersToAddRole: [],
+        filteredByOoo: 0,
       });
     });
 
@@ -1417,6 +1441,74 @@ describe("discordactions", function () {
       expect(users.length).to.equal(2);
       expect(users[0].id).to.equal(userId0);
       expect(users[1].id).to.equal(userId1);
+    });
+  });
+
+  describe("getMissedProgressUpdatesUsers working days window", function () {
+    let dateNowStub;
+    let developerDiscordId;
+    let developerUserId;
+    let developerTaskId;
+    let sundayFixture;
+
+    beforeEach(async function () {
+      await cleanDb();
+
+      sundayFixture = getSundayGapFixture();
+      dateNowStub = sinon.stub(Date, "now").returns(sundayFixture.evaluationTime);
+
+      developerDiscordId = sundayFixture.developer.discordId;
+      developerUserId = await addUser(sundayFixture.developer);
+
+      await userStatusModel.updateUserStatus(developerUserId, userStatusData.activeStatus);
+
+      const taskPayload = {
+        ...sundayFixture.task,
+        assignee: developerUserId,
+      };
+
+      const taskDocRef = await tasksModel.add(taskPayload);
+      developerTaskId = taskDocRef.id;
+
+      const saturdayProgress = stubbedModelTaskProgressData(
+        developerUserId,
+        developerTaskId,
+        sundayFixture.saturdayProgressTimestamp,
+        sundayFixture.saturdayProgressTimestamp
+      );
+
+      await firestore.collection("progresses").add(saturdayProgress);
+
+      sinon.stub(discordService, "getDiscordMembers").resolves([
+        {
+          user: { id: developerDiscordId },
+          roles: [config.get("discordDeveloperRoleId")],
+        },
+      ]);
+    });
+
+    afterEach(async function () {
+      if (dateNowStub) {
+        dateNowStub.restore();
+      }
+      sinon.restore();
+      await cleanDb();
+    });
+
+    it("should not flag users when the only gap falls on Sunday", async function () {
+      const result = await getMissedProgressUpdatesUsers();
+
+      expect(result).to.be.an("object");
+      expect(result.usersToAddRole).to.not.include(developerDiscordId);
+      expect(result.missedUpdatesTasks).to.equal(0);
+    });
+
+    it("should flag users when Sunday is treated as a working day", async function () {
+      const result = await getMissedProgressUpdatesUsers({ excludedDays: [], dateGap: 1 });
+
+      expect(result).to.be.an("object");
+      expect(result.usersToAddRole).to.include(developerDiscordId);
+      expect(result.missedUpdatesTasks).to.equal(1);
     });
   });
 });

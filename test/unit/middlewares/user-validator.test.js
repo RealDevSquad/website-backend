@@ -107,12 +107,10 @@ describe("Middleware | Validators | User", function () {
       expect(next.calledOnce).to.be.equal(true);
     });
 
-    it("lets roles update request pass to next", async function () {
+    it("lets role update request pass to next", async function () {
       const req = {
         body: {
-          roles: {
-            maven: true,
-          },
+          role: "developer",
         },
       };
 
@@ -486,6 +484,38 @@ describe("Middleware | Validators | User", function () {
 
       await getUsers(req, res, next);
       expect(next.calledOnce).to.be.equal(true);
+    });
+
+    it("Allows the request with profileStatus parameter to pass to next", async function () {
+      const req = {
+        query: {
+          profileStatus: "BLOCKED",
+        },
+      };
+
+      const res = {};
+      const next = sinon.spy();
+
+      await getUsers(req, res, next);
+      expect(next.calledOnce).to.be.equal(true);
+    });
+
+    it("Stops the propagation when profileStatus is empty", async function () {
+      const req = {
+        query: {
+          profileStatus: "",
+        },
+      };
+      const res = {
+        boom: {
+          badRequest: () => {},
+        },
+      };
+      const nextSpy = sinon.spy();
+      await getUsers(req, res, nextSpy).catch((err) => {
+        expect(err).to.be.an.instanceOf(Error);
+      });
+      expect(nextSpy.calledOnce).to.be.equal(false);
     });
 
     it("Stops the request for passing on to next", async function () {

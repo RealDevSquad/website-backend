@@ -75,16 +75,22 @@ const activeStatus = {
   },
 };
 
-const generateUserStatusData = (state, updatedAt, from, until = "", message = "") => {
-  return {
+const generateUserStatusData = (state, updatedAt, from, until = "") => {
+  const data = {
     currentStatus: {
       state,
-      message,
       from,
-      until,
+      updatedAt,
+    },
+    monthlyHours: {
+      committed: 40,
       updatedAt,
     },
   };
+  if (until) {
+    data.currentStatus.until = until;
+  }
+  return data;
 };
 
 const generateStatusDataForState = (userId, state) => {

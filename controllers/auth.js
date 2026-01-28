@@ -1,13 +1,16 @@
 const passport = require("passport");
+const config = require("config");
 const users = require("../models/users");
 const QrCodeAuthModel = require("../models/qrCodeAuth");
 const authService = require("../services/authService");
 const dataAccess = require("../services/dataAccessLayer");
+const logger = require("../utils/logger");
 const {
   SOMETHING_WENT_WRONG,
   DATA_ADDED_SUCCESSFULLY,
   USER_DOES_NOT_EXIST_ERROR,
 } = require("../constants/errorMessages");
+const ROLES = require("../constants/roles");
 
 const googleAuthLogin = (req, res, next) => {
   const { redirectURL } = req.query;
@@ -84,13 +87,10 @@ async function handleGoogleLogin(req, res, user, authRedirectionUrl) {
     };
 
     const userDataFromDB = await users.fetchUser({ email: userData.email });
-
-    if (userDataFromDB.userExists) {
-      if (userDataFromDB.user.roles?.developer) {
-        const errorMessage = encodeURIComponent("Google login is restricted for developer role.");
-        const separator = authRedirectionUrl.search ? "&" : "?";
-        return res.redirect(`${authRedirectionUrl}${separator}error=${errorMessage}`);
-      }
+    if (userDataFromDB.userExists && userDataFromDB.user?.role === ROLES.DEVELOPER) {
+      return res.status(403).json({
+        message: "Google Login is restricted for developers,please use github Login",
+      });
     }
 
     const { userId, incompleteUserDetails } = await users.addOrUpdate(userData);
@@ -102,7 +102,7 @@ async function handleGoogleLogin(req, res, user, authRedirectionUrl) {
     res.cookie(config.get("userToken.cookieName"), token, cookieOptions);
 
     if (incompleteUserDetails) {
-      authRedirectionUrl = "https://my.realdevsquad.com/new-signup";
+      authRedirectionUrl = config.get("services.rdsUi.newSignupUrl");
     }
 
     return res.redirect(authRedirectionUrl);
@@ -187,6 +187,14 @@ const githubAuthCallback = (req, res, next) => {
         }
       }
 
+      const userDataFromDB = await users.fetchUser({ email: userData.email });
+      const userRole = userDataFromDB.user?.role;
+      if (userDataFromDB.userExists && userRole && userRole !== ROLES.DEVELOPER) {
+        return res.status(403).json({
+          message: "Github Login is restricted for non-developers,please use Google Login",
+        });
+      }
+
       const { userId, incompleteUserDetails, role } = await users.addOrUpdate(userData);
 
       const token = authService.generateAuthToken({ userId });
@@ -203,7 +211,7 @@ const githubAuthCallback = (req, res, next) => {
 
       if (!devMode) {
         // TODO: Revisit incompleteUserDetails redirect condition
-        if (incompleteUserDetails) authRedirectionUrl = "https://my.realdevsquad.com/new-signup";
+        if (incompleteUserDetails) authRedirectionUrl = config.get("services.rdsUi.newSignupUrl");
       }
 
       if (isMobileApp) {

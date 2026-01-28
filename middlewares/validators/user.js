@@ -5,6 +5,7 @@ const {
   USER_STATUS,
   USERS_PATCH_HANDLER_ACTIONS,
   USERS_PATCH_HANDLER_ERROR_MESSAGES,
+  ALL_USER_ROLES,
 } = require("../../constants/users");
 const ROLES = require("../../constants/roles");
 const { IMAGE_VERIFICATION_TYPES } = require("../../constants/imageVerificationTypes");
@@ -52,11 +53,10 @@ const updateUser = async (req, res, next) => {
         .optional(),
       discordId: joi.string().optional(),
       disabledRoles: joi.array().items(joi.string().valid("super_user", "member")).optional(),
-      roles: joi.object().keys({
-        designer: joi.boolean().optional(),
-        maven: joi.boolean().optional(),
-        product_manager: joi.boolean().optional(),
-      }),
+      role: joi
+        .string()
+        .valid(...Object.values(ALL_USER_ROLES))
+        .optional(),
     });
 
   try {
@@ -197,6 +197,9 @@ async function getUsers(req, res, next) {
       query: joi.string().optional(),
       q: joi.string().optional(),
       profile: joi.string().valid("true").optional(),
+      profileStatus: joi.string().optional().messages({
+        "string.empty": "profileStatus value must not be empty",
+      }),
       filterBy: joi.string().optional(),
       days: joi.string().optional(),
       dev: joi.string().optional(),
@@ -368,6 +371,7 @@ const migrationsValidator = async (req, res, next) => {
     res.boom.badRequest("Invalid Query Parameters Passed");
   }
 };
+
 module.exports = {
   updateUser,
   updateProfileURL,

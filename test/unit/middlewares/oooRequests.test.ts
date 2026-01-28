@@ -4,15 +4,17 @@ const { expect } = chai;
 
 import {
   createOooStatusRequestValidator,
-  // acknowledgeOOORequestsValidator,
+   acknowledgeOooRequestValidator,
 } from "./../../../middlewares/validators/oooRequests";
-import { acknowledgeOooRequest, validOooStatusRequests, validOooStatusUpdate } from "../../fixtures/oooRequest/oooRequest";
+import { testAcknowledgeOooRequest, validOooStatusRequests, validOooStatusUpdate } from "../../fixtures/oooRequest/oooRequest";
 import _ from "lodash";
+import { AcknowledgeOooRequest, OooRequestResponse } from "../../../types/oooRequest";
 
 describe("OOO Status Request Validators", function () {
   let req: any;
   let res: any;
   let nextSpy;
+  
   beforeEach(function () {
     res = {
       boom: {
@@ -29,7 +31,7 @@ describe("OOO Status Request Validators", function () {
       res = {};
 
       await createOooStatusRequestValidator(req as any, res as any, nextSpy);
-      expect(nextSpy.calledOnce);
+      expect(nextSpy.notCalled).to.be.true;
     });
 
     it("should not validate for an invalid request on wrong type", async function () {
@@ -80,7 +82,7 @@ describe("OOO Status Request Validators", function () {
 
     it("should not validate for an invalid request if all until date is greater than from", async function () {
       req = {
-        body: { ...validOooStatusRequests, from: Date.now() + 5000000, until: Date.now() + 1000000 },
+        body: { ...validOooStatusRequests, from: new Date().setUTCHours(0, 0, 0, 0) + 5000000, until: new Date().setUTCHours(0, 0, 0, 0) + 1000000 },
       };
       try {
         await createOooStatusRequestValidator(req as any, res as any, nextSpy);
@@ -91,40 +93,46 @@ describe("OOO Status Request Validators", function () {
     });
   });
 
-  describe.skip("acknowledgeOOORequestsValidator", function () {
+  describe("acknowledgeOOORequestsValidator", function () {
     it("should not validate for an invalid request for invalid request type", async function () {
       req = {
-        body: { ...acknowledgeOooRequest, type: "XYZ"}
+        body: { ...testAcknowledgeOooRequest, type: "XYZ"},
+        params: { id: "test-id" }
       };
 
-      // await acknowledgeOOORequestsValidator(req, res, nextSpy);
+      await acknowledgeOooRequestValidator(req as AcknowledgeOooRequest, res as OooRequestResponse, nextSpy);
+      expect(res.boom.badRequest.calledOnce).to.be.true;
       expect(nextSpy.notCalled).to.be.true;
     });
 
     it("should not validate for an invalid request if status is incorrect", async function () {
       req = {
-        body: { ...acknowledgeOooRequest, status: "PENDING"}
+        body: { ...testAcknowledgeOooRequest, status: "PENDING"},
+        params: { id: "test-id" }
       };
 
-      // await acknowledgeOOORequestsValidator(req, res, nextSpy);
+      await acknowledgeOooRequestValidator(req as AcknowledgeOooRequest, res as OooRequestResponse, nextSpy);
+      expect(res.boom.badRequest.calledOnce).to.be.true;
       expect(nextSpy.notCalled).to.be.true;
     });
 
     it("should validate for a valid acknowledge OOO request if comment not provided by superusers", async function() {
       req = {
-        body: _.omit(acknowledgeOooRequest, "comment")
+        body: _.omit(testAcknowledgeOooRequest, "comment"),
+        params: { id: "test-id" }
       };
       res = {};
-      // await acknowledgeOOORequestsValidator(req, res, nextSpy);
+      await acknowledgeOooRequestValidator(req as AcknowledgeOooRequest, res as OooRequestResponse, nextSpy);
       expect(nextSpy.calledOnce).to.be.true;
     });
 
     it("should validate for a valid acknowledge OOO request", async function() {
       req = {
-        body: acknowledgeOooRequest
+        body: testAcknowledgeOooRequest,
+        params: { id: "test-id" }
       };
       res = {};
-      // await acknowledgeOOORequestsValidator(req, res, nextSpy);
+      await acknowledgeOooRequestValidator(req as AcknowledgeOooRequest, res as OooRequestResponse, nextSpy);
       expect(nextSpy.calledOnce).to.be.true;
     });
   });
