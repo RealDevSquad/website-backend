@@ -26,6 +26,7 @@ const APPLICATION_ERROR_MESSAGES = {
   NUDGE_TOO_SOON: "Nudge unavailable. You'll be able to nudge again after 24 hours.",
   NUDGE_ONLY_PENDING_ALLOWED: "Nudge unavailable. Only pending applications can be nudged.",
   EDIT_TOO_SOON: "You can edit your application again after 24 hours from the last edit.",
+  EMPTY_UPDATE_PAYLOAD: "Update payload must contain at least one allowed field.",
 };
 
 const APPLICATION_LOG_MESSAGES = {

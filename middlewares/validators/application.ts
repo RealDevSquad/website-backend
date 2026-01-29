@@ -141,6 +141,7 @@ const validateApplicationUpdateData = async (req: CustomRequest, res: CustomResp
   const schema = joi
     .object()
     .strict()
+    .min(1)
     .keys({
       imageUrl: joi.string().uri().optional(),
       foundFrom: joi.string().min(1).optional(),
@@ -160,6 +161,9 @@ const validateApplicationUpdateData = async (req: CustomRequest, res: CustomResp
       numberOfHours: joi.number().min(1).max(100).optional(),
       professional: professionalSchema,
       socialLink: socialLinkSchema,
+    })
+    .messages({
+      "object.min": "Update payload must contain at least one allowed field.",
     });
 
   try {
