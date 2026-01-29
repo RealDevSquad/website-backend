@@ -296,4 +296,51 @@ describe("applications", function () {
       expect(application.feedback[0].createdAt <= afterTime).to.be.true;
     });
   });
+
+  describe("updateApplication", function () {
+    it("should return success when application exists, userId matches, and no previous edit", async function () {
+      const dataToUpdate = { "intro.introduction": "Updated introduction" };
+      const result = await ApplicationModel.updateApplication(dataToUpdate, applicationId1, "faksdjfkdfjdkfjksdfkj");
+
+      expect(result.status).to.be.equal("success");
+
+      const application = await ApplicationModel.getApplicationById(applicationId1);
+      expect(application.intro.introduction).to.be.equal("Updated introduction");
+      expect(application.lastEditAt).to.exist;
+    });
+
+    it("should return notFound when application does not exist", async function () {
+      const dataToUpdate = { "intro.introduction": "Updated" };
+      const result = await ApplicationModel.updateApplication(
+        dataToUpdate,
+        "non-existent-application-id",
+        "faksdjfkdfjdkfjksdfkj"
+      );
+
+      expect(result.status).to.be.equal("notFound");
+    });
+
+    it("should return unauthorized when userId does not match application owner", async function () {
+      const dataToUpdate = { "intro.introduction": "Updated" };
+      const result = await ApplicationModel.updateApplication(dataToUpdate, applicationId1, "different-user-id");
+
+      expect(result.status).to.be.equal("unauthorized");
+
+      const application = await ApplicationModel.getApplicationById(applicationId1);
+      expect(application.intro).to.not.have.property("introduction", "Updated");
+    });
+
+    it("should return tooSoon when edit is attempted within 24 hours of last edit", async function () {
+      const applicationData = { ...applicationsData[0], userId: "edit-test-user" };
+      const newApplicationId = await ApplicationModel.addApplication(applicationData);
+
+      const firstUpdate = { "intro.introduction": "First edit" };
+      const firstResult = await ApplicationModel.updateApplication(firstUpdate, newApplicationId, "edit-test-user");
+      expect(firstResult.status).to.be.equal("success");
+
+      const secondUpdate = { "intro.forFun": "Second edit" };
+      const secondResult = await ApplicationModel.updateApplication(secondUpdate, newApplicationId, "edit-test-user");
+      expect(secondResult.status).to.be.equal("tooSoon");
+    });
+  });
 });

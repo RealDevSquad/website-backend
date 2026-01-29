@@ -356,6 +356,153 @@ describe("Application", function () {
     });
   });
 
+  describe("PATCH /applications/:applicationId", function () {
+    it("should return 200 and update application when owner sends valid payload", function (done) {
+      chai
+        .request(app)
+        .patch(`/applications/${applicationId1}`)
+        .set("cookie", `${cookieName}=${jwt}`)
+        .send({ introduction: "Updated introduction text" })
+        .end((err, res) => {
+          if (err) {
+            return done(err);
+          }
+
+          expect(res).to.have.status(200);
+          expect(res.body.message).to.be.equal("Application updated successfully!");
+          return done();
+        });
+    });
+
+    it("should return 400 when request body is empty", function (done) {
+      chai
+        .request(app)
+        .patch(`/applications/${applicationId1}`)
+        .set("cookie", `${cookieName}=${jwt}`)
+        .send({})
+        .end((err, res) => {
+          if (err) {
+            return done(err);
+          }
+
+          expect(res).to.have.status(400);
+          expect(res.body.error).to.be.equal("Bad Request");
+          expect(res.body.message).to.include("at least one allowed field");
+          return done();
+        });
+    });
+
+    it("should return 400 when request body contains disallowed field", function (done) {
+      chai
+        .request(app)
+        .patch(`/applications/${applicationId1}`)
+        .set("cookie", `${cookieName}=${jwt}`)
+        .send({ batman: true })
+        .end((err, res) => {
+          if (err) {
+            return done(err);
+          }
+
+          expect(res).to.have.status(400);
+          expect(res.body.error).to.be.equal("Bad Request");
+          return done();
+        });
+    });
+
+    it("should return 400 when imageUrl is not a valid URI", function (done) {
+      chai
+        .request(app)
+        .patch(`/applications/${applicationId1}`)
+        .set("cookie", `${cookieName}=${jwt}`)
+        .send({ imageUrl: "not-a-valid-uri" })
+        .end((err, res) => {
+          if (err) {
+            return done(err);
+          }
+
+          expect(res).to.have.status(400);
+          expect(res.body.error).to.be.equal("Bad Request");
+          return done();
+        });
+    });
+
+    it("should return 404 when application does not exist", function (done) {
+      chai
+        .request(app)
+        .patch(`/applications/non-existent-application-id`)
+        .set("cookie", `${cookieName}=${jwt}`)
+        .send({ introduction: "Updated" })
+        .end((err, res) => {
+          if (err) {
+            return done(err);
+          }
+
+          expect(res).to.have.status(404);
+          expect(res.body.error).to.be.equal("Not Found");
+          expect(res.body.message).to.be.equal("Application not found");
+          return done();
+        });
+    });
+
+    it("should return 401 when user is not authenticated", function (done) {
+      chai
+        .request(app)
+        .patch(`/applications/${applicationId1}`)
+        .send({ introduction: "Updated" })
+        .end((err, res) => {
+          if (err) {
+            return done(err);
+          }
+
+          expect(res).to.have.status(401);
+          expect(res.body.error).to.be.equal("Unauthorized");
+          expect(res.body.message).to.be.equal("Unauthenticated User");
+          return done();
+        });
+    });
+
+    it("should return 401 when user does not own the application", function (done) {
+      chai
+        .request(app)
+        .patch(`/applications/${applicationId1}`)
+        .set("cookie", `${cookieName}=${secondUserJwt}`)
+        .send({ introduction: "Updated" })
+        .end((err, res) => {
+          if (err) {
+            return done(err);
+          }
+
+          expect(res).to.have.status(401);
+          expect(res.body.error).to.be.equal("Unauthorized");
+          expect(res.body.message).to.be.equal("You are not authorized to edit this application");
+          return done();
+        });
+    });
+
+    it("should return 409 when edit is attempted within 24 hours of last edit", async function () {
+      const applicationForEditTest = { ...applicationsData[0], userId };
+      const editTestApplicationId = await applicationModel.addApplication(applicationForEditTest);
+
+      const firstRes = await chai
+        .request(app)
+        .patch(`/applications/${editTestApplicationId}`)
+        .set("cookie", `${cookieName}=${jwt}`)
+        .send({ introduction: "First edit" });
+
+      expect(firstRes).to.have.status(200);
+
+      const secondRes = await chai
+        .request(app)
+        .patch(`/applications/${editTestApplicationId}`)
+        .set("cookie", `${cookieName}=${jwt}`)
+        .send({ foundFrom: "Second edit" });
+
+      expect(secondRes).to.have.status(409);
+      expect(secondRes.body.error).to.be.equal("Conflict");
+      expect(secondRes.body.message).to.be.equal(APPLICATION_ERROR_MESSAGES.EDIT_TOO_SOON);
+    });
+  });
+
   describe("PATCH /applications/:applicationId/feedback", function () {
     it("should return 200 if the user is super user and application feedback is submitted", function (done) {
       chai
