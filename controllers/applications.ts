@@ -101,30 +101,61 @@ const addApplication = async (req: CustomRequest, res: CustomResponse) => {
   }
 };
 
+const buildApplicationUpdatePayload = (body: Record<string, any>) => {
+  const dataToUpdate: Record<string, any> = {};
+
+  if (body.imageUrl !== undefined) dataToUpdate.imageUrl = body.imageUrl;
+  if (body.foundFrom !== undefined) dataToUpdate.foundFrom = body.foundFrom;
+  if (body.socialLink !== undefined) dataToUpdate.socialLink = body.socialLink;
+
+  if (body.introduction !== undefined) dataToUpdate["intro.introduction"] = body.introduction;
+  if (body.forFun !== undefined) dataToUpdate["intro.forFun"] = body.forFun;
+  if (body.funFact !== undefined) dataToUpdate["intro.funFact"] = body.funFact;
+  if (body.whyRds !== undefined) dataToUpdate["intro.whyRds"] = body.whyRds;
+  if (body.numberOfHours !== undefined) dataToUpdate["intro.numberOfHours"] = body.numberOfHours;
+
+  if (body.professional && typeof body.professional === "object") {
+    if (body.professional.institution !== undefined) dataToUpdate["professional.institution"] = body.professional.institution;
+    if (body.professional.skills !== undefined) dataToUpdate["professional.skills"] = body.professional.skills;
+  }
+
+  return dataToUpdate;
+};
+
 const updateApplication = async (req: CustomRequest, res: CustomResponse) => {
   try {
     const { applicationId } = req.params;
     const rawBody = req.body;
+    const dataToUpdate = buildApplicationUpdatePayload(rawBody);
+    const userId = req.userData.id;
 
-    const applicationLog = {
-      type: logType.APPLICATION_UPDATED,
-      meta: {
-        applicationId,
-        username: req.userData.username,
-        userId: req.userData.id,
-      },
-      body: rawBody,
-    };
+    const result = await ApplicationModel.updateApplication(dataToUpdate, applicationId, userId);
 
-    const promises = [
-      ApplicationModel.updateApplication(rawBody, applicationId),
-      addLog(applicationLog.type, applicationLog.meta, applicationLog.body),
-    ];
-
-    await Promise.all(promises);
-    return res.json({
-      message: "Application updated successfully!",
-    });
+    switch (result.status) {
+      case APPLICATION_STATUS.notFound:
+        return res.boom.notFound("Application not found");
+      case APPLICATION_STATUS.unauthorized:
+        return res.boom.unauthorized("You are not authorized to edit this application");
+      case APPLICATION_STATUS.tooSoon:
+        return res.boom.conflict(APPLICATION_ERROR_MESSAGES.EDIT_TOO_SOON);
+      case APPLICATION_STATUS.success: {
+        const applicationLog = {
+          type: logType.APPLICATION_UPDATED,
+          meta: {
+            applicationId,
+            username: req.userData.username,
+            userId,
+          },
+          body: rawBody,
+        };
+        await addLog(applicationLog.type, applicationLog.meta, applicationLog.body);
+        return res.json({
+          message: "Application updated successfully!",
+        });
+      }
+      default:
+        return res.boom.badImplementation(INTERNAL_SERVER_ERROR);
+    }
   } catch (err) {
     logger.error(`Error while updating the application: ${err}`);
     return res.boom.badImplementation(INTERNAL_SERVER_ERROR);

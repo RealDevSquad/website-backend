@@ -111,7 +111,7 @@ describe("application validator test", function () {
         status: "accepted",
         feedback: "some feedback",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(1);
     });
 
@@ -119,7 +119,7 @@ describe("application validator test", function () {
       req.body = {
         batman: true,
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(0);
     });
 
@@ -127,7 +127,7 @@ describe("application validator test", function () {
       req.body = {
         status: "something",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(0);
     });
 
@@ -136,7 +136,7 @@ describe("application validator test", function () {
         status: "accepted",
         feedback: "Great work!",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(1);
     });
 
@@ -145,7 +145,7 @@ describe("application validator test", function () {
         status: "rejected",
         feedback: "Not a good fit",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(1);
     });
 
@@ -154,7 +154,7 @@ describe("application validator test", function () {
         status: "changes_requested",
         feedback: "Please update your skills section",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(1);
     });
 
@@ -162,7 +162,7 @@ describe("application validator test", function () {
       req.body = {
         status: "changes_requested",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(0);
     });
 
@@ -171,7 +171,7 @@ describe("application validator test", function () {
         status: "changes_requested",
         feedback: "",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(0);
     });
 
@@ -180,7 +180,7 @@ describe("application validator test", function () {
         status: "accepted",
         feedback: "",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(1);
     });
 
@@ -189,7 +189,7 @@ describe("application validator test", function () {
         status: "rejected",
         feedback: "",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(1);
     });
 
@@ -197,7 +197,7 @@ describe("application validator test", function () {
       req.body = {
         feedback: "Some feedback",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(0);
     });
 
@@ -205,7 +205,7 @@ describe("application validator test", function () {
       req.body = {
         status: null,
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(0);
     });
   });

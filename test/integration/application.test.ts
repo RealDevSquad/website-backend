@@ -689,7 +689,7 @@ describe("Application", function () {
           expect(res.body.nudgeCount).to.be.equal(1);
 
           const twentyFiveHoursAgo = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
-          applicationModel.updateApplication({ lastNudgeAt: twentyFiveHoursAgo }, nudgeApplicationId).then(() => {
+          applicationModel.updateApplication({ lastNudgeAt: twentyFiveHoursAgo }, nudgeApplicationId, userId).then(() => {
             chai
               .request(app)
               .patch(`/applications/${nudgeApplicationId}/nudge`)

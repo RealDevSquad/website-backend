@@ -128,13 +128,48 @@ const addApplication = async (data: application) => {
   }
 };
 
-const updateApplication = async (dataToUpdate: object, applicationId: string) => {
-  try {
-    await ApplicationsModel.doc(applicationId).update(dataToUpdate);
-  } catch (err) {
-    logger.error("Error in updating intro", err);
-    throw err;
-  }
+const updateApplication = async (
+  dataToUpdate: object,
+  applicationId: string,
+  userId: string
+) => {
+  const currentTime = Date.now();
+  const twentyFourHoursInMilliseconds = convertDaysToMilliseconds(1);
+
+  const result = await firestore.runTransaction(async (transaction) => {
+    const applicationRef = ApplicationsModel.doc(applicationId);
+    const applicationDoc = await transaction.get(applicationRef);
+
+    if (!applicationDoc.exists) {
+      return { status: APPLICATION_STATUS.notFound };
+    }
+
+    const application = applicationDoc.data();
+
+    if (application.userId !== userId) {
+      return { status: APPLICATION_STATUS.unauthorized };
+    }
+
+    const lastEditAt = application.lastEditAt;
+    if (lastEditAt) {
+      const lastEditTimestamp = new Date(lastEditAt).getTime();
+      const timeDifference = currentTime - lastEditTimestamp;
+
+      if (timeDifference < twentyFourHoursInMilliseconds) {
+        return { status: APPLICATION_STATUS.tooSoon };
+      }
+    }
+
+    const requestBody = {
+      ...dataToUpdate,
+      lastEditAt: new Date(currentTime).toISOString(),
+    };
+    transaction.update(applicationRef, requestBody);
+
+    return { status: APPLICATION_STATUS.success };
+  });
+
+  return result;
 };
 
 const nudgeApplication = async ({ applicationId, userId }: { applicationId: string; userId: string }) => {

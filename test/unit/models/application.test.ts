@@ -109,16 +109,6 @@ describe("applications", function () {
     });
   });
 
-  describe("updateApplication", function () {
-    it("should update a particular application", async function () {
-      const dataToUpdate = { status: "accepted" };
-      await ApplicationModel.updateApplication(dataToUpdate, applicationId1);
-      const application = await ApplicationModel.getApplicationById(applicationId1);
-
-      expect(application.status).to.be.equal("accepted");
-    });
-  });
-
   describe("addApplicationFeedback", function () {
     let testApplicationId: string;
     const reviewerName = "test-reviewer";

@@ -69,7 +69,7 @@ const validateApplicationData = async (req: CustomRequest, res: CustomResponse, 
   }
 };
 
-const validateApplicationUpdateData = async (req: CustomRequest, res: CustomResponse, next: NextFunction) => {
+const validateApplicationFeedbackData = async (req: CustomRequest, res: CustomResponse, next: NextFunction) => {
   const schema = joi
   .object({
     status: joi
@@ -113,6 +113,64 @@ const validateApplicationUpdateData = async (req: CustomRequest, res: CustomResp
   }
 };
 
+const validateApplicationUpdateData = async (req: CustomRequest, res: CustomResponse, next: NextFunction) => {
+  if (req.body.socialLink?.phoneNo) {
+    req.body.socialLink.phoneNo = req.body.socialLink.phoneNo.trim();
+  }
+
+  const socialLinkSchema = joi
+    .object({
+      phoneNo: joi.string().optional().regex(phoneNumberRegex).message('"phoneNo" must be in a valid format'),
+      github: joi.string().min(1).optional(),
+      instagram: joi.string().min(1).optional(),
+      linkedin: joi.string().min(1).optional(),
+      twitter: joi.string().min(1).optional(),
+      peerlist: joi.string().min(1).optional(),
+      behance: joi.string().min(1).optional(),
+      dribbble: joi.string().min(1).optional(),
+    })
+    .optional();
+
+  const professionalSchema = joi
+    .object({
+      institution: joi.string().min(1).optional(),
+      skills: joi.string().min(5).optional(),
+    })
+    .optional();
+
+  const schema = joi
+    .object()
+    .strict()
+    .keys({
+      imageUrl: joi.string().uri().optional(),
+      foundFrom: joi.string().min(1).optional(),
+      introduction: joi.string().min(1).optional(),
+      forFun: joi
+        .string()
+        .custom((value, helpers) => customWordCountValidator(value, helpers, 100))
+        .optional(),
+      funFact: joi
+        .string()
+        .custom((value, helpers) => customWordCountValidator(value, helpers, 100))
+        .optional(),
+      whyRds: joi
+        .string()
+        .custom((value, helpers) => customWordCountValidator(value, helpers, 100))
+        .optional(),
+      numberOfHours: joi.number().min(1).max(100).optional(),
+      professional: professionalSchema,
+      socialLink: socialLinkSchema,
+    });
+
+  try {
+    await schema.validateAsync(req.body);
+    next();
+  } catch (error) {
+    logger.error(`Error in validating application update data: ${error}`);
+    res.boom.badRequest(error.details[0].message);
+  }
+};
+
 const validateApplicationQueryParam = async (req: CustomRequest, res: CustomResponse, next: NextFunction) => {
   const schema = joi.object().strict().keys({
     userId: joi.string().optional(),
@@ -133,6 +191,7 @@ const validateApplicationQueryParam = async (req: CustomRequest, res: CustomResp
 
 module.exports = {
   validateApplicationData,
+  validateApplicationFeedbackData,
   validateApplicationUpdateData,
   validateApplicationQueryParam,
 };
