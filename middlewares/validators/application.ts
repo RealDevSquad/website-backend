@@ -158,7 +158,7 @@ const validateApplicationUpdateData = async (req: CustomRequest, res: CustomResp
         .string()
         .custom((value, helpers) => customWordCountValidator(value, helpers, 100))
         .optional(),
-      numberOfHours: joi.number().min(1).max(100).optional(),
+      numberOfHours: joi.number().min(1).max(168).optional(),
       professional: professionalSchema,
       socialLink: socialLinkSchema,
     })
