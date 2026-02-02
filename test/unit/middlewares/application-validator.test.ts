@@ -318,8 +318,8 @@ describe("application validator test", function () {
       expect(res.boom.badRequest.called).to.be.true;
     });
 
-    it("should not call next when numberOfHours is greater than 100", async function () {
-      req.body = { numberOfHours: 101 };
+    it("should not call next when numberOfHours is greater than 168", async function () {
+      req.body = { numberOfHours: 170 };
       await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(0);
       expect(res.boom.badRequest.called).to.be.true;
