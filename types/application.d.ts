@@ -72,3 +72,18 @@ export type applicationPayload = {
   imageUrl?: string;
   socialLink?: SocialLink;
 };
+
+export type applicationUpdatePayload = {
+  imageUrl?: string;
+  foundFrom?: string;
+  introduction?: string;
+  forFun?: string;
+  funFact?: string;
+  whyRds?: string;
+  numberOfHours?: number;
+  professional?: {
+    institution?: string;
+    skills?: string;
+  };
+  socialLink?: SocialLink;
+};

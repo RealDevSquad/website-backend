@@ -1,6 +1,7 @@
 import { addLog } from "../models/logs";
 const { logType } = require("../constants/logs");
 import { CustomRequest, CustomResponse } from "../types/global";
+import { applicationUpdatePayload } from "../types/application";
 const { INTERNAL_SERVER_ERROR } = require("../constants/errorMessages");
 const ApplicationModel = require("../models/applications");
 const { API_RESPONSE_MESSAGES, APPLICATION_ERROR_MESSAGES, APPLICATION_LOG_MESSAGES, APPLICATION_STATUS } = require("../constants/application");
@@ -8,6 +9,7 @@ const { createApplicationService } = require("../services/applicationService");
 const { Conflict } = require("http-errors");
 const logger = require("../utils/logger");
 const { APPLICATION_STATUS_TYPES } = require("../constants/application");
+import { application } from "../types/application";
 
 const getAllOrUserApplication = async (req: CustomRequest, res: CustomResponse): Promise<any> => {
   try {
@@ -101,22 +103,22 @@ const addApplication = async (req: CustomRequest, res: CustomResponse) => {
   }
 };
 
-const buildApplicationUpdatePayload = (body: Record<string, any>) => {
-  const dataToUpdate: Record<string, any> = {};
+const buildApplicationUpdatePayload = (body: applicationUpdatePayload) => {
+  const dataToUpdate: applicationUpdatePayload = {};
 
-  if (body.imageUrl !== undefined) dataToUpdate.imageUrl = body.imageUrl;
-  if (body.foundFrom !== undefined) dataToUpdate.foundFrom = body.foundFrom;
-  if (body.socialLink !== undefined) dataToUpdate.socialLink = body.socialLink;
+  if (body.imageUrl) dataToUpdate.imageUrl = body.imageUrl;
+  if (body.foundFrom) dataToUpdate.foundFrom = body.foundFrom;
+  if (body.socialLink) dataToUpdate.socialLink = body.socialLink;
 
-  if (body.introduction !== undefined) dataToUpdate["intro.introduction"] = body.introduction;
-  if (body.forFun !== undefined) dataToUpdate["intro.forFun"] = body.forFun;
-  if (body.funFact !== undefined) dataToUpdate["intro.funFact"] = body.funFact;
-  if (body.whyRds !== undefined) dataToUpdate["intro.whyRds"] = body.whyRds;
-  if (body.numberOfHours !== undefined) dataToUpdate["intro.numberOfHours"] = body.numberOfHours;
+  if (body.introduction) dataToUpdate["intro.introduction"] = body.introduction;
+  if (body.forFun) dataToUpdate["intro.forFun"] = body.forFun;
+  if (body.funFact) dataToUpdate["intro.funFact"] = body.funFact;
+  if (body.whyRds) dataToUpdate["intro.whyRds"] = body.whyRds;
+  if (body.numberOfHours) dataToUpdate["intro.numberOfHours"] = body.numberOfHours;
 
   if (body.professional && typeof body.professional === "object") {
-    if (body.professional.institution !== undefined) dataToUpdate["professional.institution"] = body.professional.institution;
-    if (body.professional.skills !== undefined) dataToUpdate["professional.skills"] = body.professional.skills;
+    if (body.professional.institution) dataToUpdate["professional.institution"] = body.professional.institution;
+    if (body.professional.skills) dataToUpdate["professional.skills"] = body.professional.skills;
   }
 
   return dataToUpdate;
