@@ -15,4 +15,8 @@ module.exports = {
     FOLDER: "/badge/",
     TAGS: ["badge", "badges"],
   },
+  APPLICATION: {
+    FOLDER: "/applications/",
+    TAGS: ["application", "applications"],
+  },
 };

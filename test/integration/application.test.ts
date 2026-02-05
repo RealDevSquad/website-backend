@@ -3,10 +3,12 @@ import chaiHttp from "chai-http";
 const { expect } = chai;
 import config from "config";
 import sinon from "sinon";
+import { Buffer } from "node:buffer";
 const app = require("../../server");
 const addUser = require("../utils/addUser");
 const cleanDb = require("../utils/cleanDb");
 const authService = require("../../services/authService");
+const imageService = require("../../services/imageService");
 const userData = require("../fixtures/user/user")();
 const applicationModel = require("../../models/applications");
 
@@ -351,6 +353,48 @@ describe("Application", function () {
           expect(res).to.have.status(201);
           expect(res.body.message).to.be.equal("Application created successfully");
           expect(res.body).to.have.property("applicationId");
+          return done();
+        });
+    });
+  });
+
+  describe("POST /applications/picture", function () {
+    const mockUploadResponse = {
+      publicId: "applications/test-user/profile",
+      url: "https://res.cloudinary.com/example/applications/test-user/profile.png",
+    };
+
+    afterEach(function () {
+      sinon.restore();
+    });
+
+    it("should return 401 when not authenticated", function (done) {
+      chai
+        .request(app)
+        .post("/applications/picture")
+        .type("form")
+        .attach("profile", Buffer.from("fake-image-data"), "test.png")
+        .end((err, res) => {
+          if (err) return done(err);
+          expect(res).to.have.status(401);
+          expect(res.body.error).to.equal("Unauthorized");
+          return done();
+        });
+    });
+
+    it("should return 201 and image data when authenticated with valid image", function (done) {
+      sinon.stub(imageService, "uploadApplicationImage").resolves(mockUploadResponse);
+      chai
+        .request(app)
+        .post("/applications/picture")
+        .set("cookie", `${cookieName}=${secondUserJwt}`)
+        .type("form")
+        .attach("profile", Buffer.from("fake-image-data"), "test.png")
+        .end((err, res) => {
+          if (err) return done(err);
+          expect(res).to.have.status(201);
+          expect(res.body.message).to.equal("Image uploaded successfully");
+          expect(res.body.image).to.deep.equal(mockUploadResponse);
           return done();
         });
     });

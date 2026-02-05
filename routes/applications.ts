@@ -5,6 +5,7 @@ const authorizeRoles = require("../middlewares/authorizeRoles");
 const applications = require("../controllers/applications");
 const { authorizeOwnOrSuperUser } = require("../middlewares/authorizeOwnOrSuperUser");
 const applicationValidator = require("../middlewares/validators/application");
+const { upload } = require("../utils/multer");
 
 const router = express.Router();
 
@@ -14,6 +15,13 @@ router.get(
   authorizeOwnOrSuperUser,
   applicationValidator.validateApplicationQueryParam,
   applications.getAllOrUserApplication
+);
+router.post(
+  "/picture",
+  authenticate,
+  upload.single("profile"),
+  applicationValidator.validateApplicationPicture,
+  applications.postUserPicture
 );
 router.get("/:applicationId", authenticate, authorizeRoles([SUPERUSER]), applications.getApplicationById);
 router.post("/", authenticate, applicationValidator.validateApplicationData, applications.addApplication);

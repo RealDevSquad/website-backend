@@ -25,6 +25,8 @@ const APPLICATION_ERROR_MESSAGES = {
   APPLICATION_ALREADY_REVIEWED: "Application has already been reviewed",
   NUDGE_TOO_SOON: "Nudge unavailable. You'll be able to nudge again after 24 hours.",
   NUDGE_ONLY_PENDING_ALLOWED: "Nudge unavailable. Only pending applications can be nudged.",
+  PICTURE_FILE_MISSING: "Image file is required. Please upload an image with field name 'profile'.",
+  PICTURE_FILE_EMPTY: "Image file is empty. Please upload a valid image (PNG or JPEG).",
 };
 
 const APPLICATION_LOG_MESSAGES = {

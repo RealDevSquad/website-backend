@@ -3,6 +3,7 @@ import sinon from "sinon";
 import { CustomRequest, CustomResponse } from "../../../types/global";
 const applicationsController = require("../../../controllers/applications");
 const ApplicationModel = require("../../../models/applications");
+const imageService = require("../../../services/imageService");
 const { API_RESPONSE_MESSAGES, APPLICATION_ERROR_MESSAGES } = require("../../../constants/application");
 
 describe("nudgeApplication", () => {
@@ -321,6 +322,101 @@ describe("submitApplicationFeedback", () => {
 
       await applicationsController.submitApplicationFeedback(req as CustomRequest, res as CustomResponse);
 
+      expect(boomBadImplementation.calledOnce).to.be.true;
+      expect(jsonSpy.notCalled).to.be.true;
+    });
+  });
+});
+
+describe("postUserPicture", () => {
+  let req: Partial<CustomRequest> & { file?: { buffer: Buffer; originalname: string } };
+  let res: Partial<CustomResponse> & {
+    status: sinon.SinonStub;
+    json: sinon.SinonSpy;
+    boom: {
+      badRequest: sinon.SinonSpy;
+      badImplementation: sinon.SinonSpy;
+    };
+  };
+  let statusStub: sinon.SinonStub;
+  let jsonSpy: sinon.SinonSpy;
+  let boomBadRequest: sinon.SinonSpy;
+  let boomBadImplementation: sinon.SinonSpy;
+  let uploadApplicationImageStub: sinon.SinonStub;
+
+  const mockUserId = "test-user-id-456";
+  const mockFile = {
+    buffer: Buffer.from("fake-image-data"),
+    originalname: "test.png",
+  };
+  const mockImageData = {
+    publicId: "applications/test-user-id-456/profile",
+    url: "https://res.cloudinary.com/example/image.png",
+  };
+
+  beforeEach(() => {
+    jsonSpy = sinon.spy();
+    boomBadRequest = sinon.spy();
+    boomBadImplementation = sinon.spy();
+    statusStub = sinon.stub().returnsThis();
+
+    req = {
+      userData: { id: mockUserId, username: "testuser" },
+      file: mockFile,
+    };
+
+    res = {
+      status: statusStub,
+      json: jsonSpy,
+      boom: {
+        badRequest: boomBadRequest,
+        badImplementation: boomBadImplementation,
+      },
+    };
+
+    uploadApplicationImageStub = sinon.stub(imageService, "uploadApplicationImage");
+  });
+
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  describe("Success cases", () => {
+    it("should upload image and return 201 with image data", async () => {
+      uploadApplicationImageStub.resolves(mockImageData);
+
+      await applicationsController.postUserPicture(req as CustomRequest, res as CustomResponse);
+
+      expect(uploadApplicationImageStub.calledOnce).to.be.true;
+      expect(uploadApplicationImageStub.firstCall.args[0]).to.deep.equal({
+        file: mockFile,
+        userId: mockUserId,
+      });
+      expect(statusStub.calledWith(201)).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.firstCall.args[0].message).to.equal("Image uploaded successfully");
+      expect(jsonSpy.firstCall.args[0].image).to.deep.equal(mockImageData);
+    });
+  });
+
+  describe("Error cases", () => {
+    it("should return 400 when file is missing", async () => {
+      req.file = undefined;
+
+      await applicationsController.postUserPicture(req as CustomRequest, res as CustomResponse);
+
+      expect(uploadApplicationImageStub.notCalled).to.be.true;
+      expect(boomBadRequest.calledOnce).to.be.true;
+      expect(boomBadRequest.firstCall.args[0]).to.equal(APPLICATION_ERROR_MESSAGES.PICTURE_FILE_MISSING);
+      expect(jsonSpy.notCalled).to.be.true;
+    });
+
+    it("should return 500 when upload fails", async () => {
+      uploadApplicationImageStub.rejects(new Error("Cloudinary error"));
+
+      await applicationsController.postUserPicture(req as CustomRequest, res as CustomResponse);
+
+      expect(uploadApplicationImageStub.calledOnce).to.be.true;
       expect(boomBadImplementation.calledOnce).to.be.true;
       expect(jsonSpy.notCalled).to.be.true;
     });

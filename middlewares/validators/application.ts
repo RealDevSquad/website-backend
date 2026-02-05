@@ -2,7 +2,7 @@ import { NextFunction } from "express";
 import { CustomRequest, CustomResponse } from "../../types/global";
 import { customWordCountValidator } from "../../utils/customWordCountValidator";
 const joi = require("joi");
-const { APPLICATION_STATUS_TYPES, APPLICATION_ROLES } = require("../../constants/application");
+const { APPLICATION_STATUS_TYPES, APPLICATION_ROLES, APPLICATION_ERROR_MESSAGES } = require("../../constants/application");
 const { phoneNumberRegex } = require("../../constants/subscription-validator");
 const logger = require("../../utils/logger");
 
@@ -131,8 +131,34 @@ const validateApplicationQueryParam = async (req: CustomRequest, res: CustomResp
   }
 };
 
+type RequestWithFile = CustomRequest & {
+  file?: { buffer: Buffer; mimetype?: string };
+};
+
+const validateApplicationPicture = async (req: CustomRequest, res: CustomResponse, next: NextFunction) => {
+  const file = (req as RequestWithFile).file;
+
+  if (!file) {
+    logger.error("Application picture validation failed: no file in request");
+    return res.boom.badRequest(APPLICATION_ERROR_MESSAGES.PICTURE_FILE_MISSING);
+  }
+
+  if (!file.buffer || file.buffer.length === 0) {
+    logger.error("Application picture validation failed: file is empty");
+    return res.boom.badRequest(APPLICATION_ERROR_MESSAGES.PICTURE_FILE_EMPTY);
+  }
+
+  const allowedMimeTypes = ["image/png", "image/jpeg"];
+  if (!file.mimetype || !allowedMimeTypes.includes(file.mimetype)) {
+    return res.boom.unsupportedMediaType("Only image/jpeg, image/png supported");
+  }
+
+  next();
+};
+
 module.exports = {
   validateApplicationData,
   validateApplicationUpdateData,
   validateApplicationQueryParam,
+  validateApplicationPicture,
 };
