@@ -30,32 +30,45 @@ const getUserApplicationObject = (rawData: applicationPayload, userId: string, c
   return data;
 };
 
-const buildApplicationUpdatePayload = (body: applicationUpdatePayload) => {
-  const dataToUpdate: applicationUpdatePayload = {};
+const FLAT_FIELD_MAP: Record<keyof Omit<applicationUpdatePayload, "professional" | "socialLink">, string> = {
+  imageUrl: "imageUrl",
+  foundFrom: "foundFrom",
+  introduction: "intro.introduction",
+  forFun: "intro.forFun",
+  funFact: "intro.funFact",
+  whyRds: "intro.whyRds",
+  numberOfHours: "intro.numberOfHours",
+};
 
-  if (body.imageUrl) dataToUpdate.imageUrl = body.imageUrl;
-  if (body.foundFrom) dataToUpdate.foundFrom = body.foundFrom;
+const PROFESSIONAL_KEYS = ["institution", "skills"] as const;
+const SOCIAL_LINK_KEYS = ["phoneNo", "github", "instagram", "linkedin", "twitter", "peerlist", "behance", "dribbble"] as const;
 
-  if (body.introduction) dataToUpdate["intro.introduction"] = body.introduction;
-  if (body.forFun) dataToUpdate["intro.forFun"] = body.forFun;
-  if (body.funFact) dataToUpdate["intro.funFact"] = body.funFact;
-  if (body.whyRds) dataToUpdate["intro.whyRds"] = body.whyRds;
-  if (body.numberOfHours) dataToUpdate["intro.numberOfHours"] = body.numberOfHours;
+const buildApplicationUpdatePayload = (body: applicationUpdatePayload): Record<string, string | number | undefined> => {
+  const dataToUpdate: Record<string, string | number | undefined> = {};
+
+  Object.entries(FLAT_FIELD_MAP).forEach(([key, path]) => {
+    const value = body[key as keyof typeof FLAT_FIELD_MAP];
+    if (value != null) {
+      dataToUpdate[path] = value;
+    }
+  });
 
   if (body.professional && typeof body.professional === "object") {
-    if (body.professional.institution) dataToUpdate["professional.institution"] = body.professional.institution;
-    if (body.professional.skills) dataToUpdate["professional.skills"] = body.professional.skills;
+    PROFESSIONAL_KEYS.forEach((key) => {
+      const value = body.professional![key];
+      if (value != null) {
+        dataToUpdate[`professional.${key}`] = value;
+      }
+    });
   }
 
   if (body.socialLink && typeof body.socialLink === "object") {
-    if (body.socialLink.phoneNo) dataToUpdate["socialLink.phoneNo"] = body.socialLink.phoneNo;
-    if (body.socialLink.github) dataToUpdate["socialLink.github"] = body.socialLink.github;
-    if (body.socialLink.instagram) dataToUpdate["socialLink.instagram"] = body.socialLink.instagram;
-    if (body.socialLink.linkedin) dataToUpdate["socialLink.linkedin"] = body.socialLink.linkedin;
-    if (body.socialLink.twitter) dataToUpdate["socialLink.twitter"] = body.socialLink.twitter;
-    if (body.socialLink.peerlist) dataToUpdate["socialLink.peerlist"] = body.socialLink.peerlist;
-    if (body.socialLink.behance) dataToUpdate["socialLink.behance"] = body.socialLink.behance;
-    if (body.socialLink.dribbble) dataToUpdate["socialLink.dribbble"] = body.socialLink.dribbble;
+    SOCIAL_LINK_KEYS.forEach((key) => {
+      const value = body.socialLink![key];
+      if (value != null) {
+        dataToUpdate[`socialLink.${key}`] = value;
+      }
+    });
   }
 
   return dataToUpdate;

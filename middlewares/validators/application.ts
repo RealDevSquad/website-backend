@@ -65,7 +65,7 @@ const validateApplicationData = async (req: CustomRequest, res: CustomResponse, 
     next();
   } catch (error) {
     logger.error(`Error in validating application data: ${error}`);
-    res.boom.badRequest(error.details[0].message);
+    return res.boom.badRequest(error.details[0].message);
   }
 };
 
@@ -109,7 +109,7 @@ const validateApplicationFeedbackData = async (req: CustomRequest, res: CustomRe
     next();
   } catch (error) {
     logger.error(`Error in validating recruiter data: ${error}`);
-    res.boom.badRequest(error.details[0].message);
+    return res.boom.badRequest(error.details[0].message);
   }
 };
 
@@ -158,7 +158,7 @@ const validateApplicationUpdateData = async (req: CustomRequest, res: CustomResp
     next();
   } catch (error) {
     logger.error(`Error in validating application update data: ${error}`);
-    res.boom.badRequest(error.details[0].message);
+    return res.boom.badRequest(error.details[0].message);
   }
 };
 
@@ -176,7 +176,7 @@ const validateApplicationQueryParam = async (req: CustomRequest, res: CustomResp
     next();
   } catch (error) {
     logger.error(`Error validating query params : ${error}`);
-    res.boom.badRequest(error.details[0].message);
+    return res.boom.badRequest(error.details[0].message);
   }
 };
 
