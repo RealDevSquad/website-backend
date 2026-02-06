@@ -3,7 +3,6 @@ import sinon from "sinon";
 import { CustomRequest, CustomResponse } from "../../../types/global";
 const applicationsController = require("../../../controllers/applications");
 const ApplicationModel = require("../../../models/applications");
-const logsModel = require("../../../models/logs");
 const { API_RESPONSE_MESSAGES, APPLICATION_ERROR_MESSAGES } = require("../../../constants/application");
 const { APPLICATION_STATUS } = require("../../../constants/application");
 
@@ -24,7 +23,6 @@ describe("updateApplication", () => {
   let boomConflict: sinon.SinonSpy;
   let boomBadImplementation: sinon.SinonSpy;
   let updateApplicationStub: sinon.SinonStub;
-  let addLogStub: sinon.SinonStub;
 
   const mockApplicationId = "app-id-123";
   const mockUserId = "user-id-456";
@@ -54,7 +52,6 @@ describe("updateApplication", () => {
     };
 
     updateApplicationStub = sinon.stub(ApplicationModel, "updateApplication");
-    addLogStub = sinon.stub(logsModel, "addLog").resolves();
   });
 
   afterEach(() => {
@@ -71,9 +68,8 @@ describe("updateApplication", () => {
       expect(updateApplicationStub.firstCall.args[0]).to.deep.include({ "intro.introduction": "Updated introduction text" });
       expect(updateApplicationStub.firstCall.args[1]).to.equal(mockApplicationId);
       expect(updateApplicationStub.firstCall.args[2]).to.equal(mockUserId);
-
-      expect(addLogStub.calledOnce).to.be.true;
-      expect(addLogStub.firstCall.args[1]).to.deep.include({ applicationId: mockApplicationId, userId: mockUserId, username: mockUsername });
+      expect(updateApplicationStub.firstCall.args[3]).to.equal(mockUsername);
+      expect(updateApplicationStub.firstCall.args[4]).to.deep.equal(req.body);
 
       expect(jsonSpy.calledOnce).to.be.true;
       expect(jsonSpy.firstCall.args[0].message).to.equal("Application updated successfully!");
@@ -104,7 +100,6 @@ describe("updateApplication", () => {
 
       expect(boomNotFound.calledOnce).to.be.true;
       expect(boomNotFound.firstCall.args[0]).to.equal("Application not found");
-      expect(addLogStub.called).to.be.false;
       expect(jsonSpy.called).to.be.false;
     });
 
@@ -115,7 +110,6 @@ describe("updateApplication", () => {
 
       expect(boomUnauthorized.calledOnce).to.be.true;
       expect(boomUnauthorized.firstCall.args[0]).to.equal("You are not authorized to edit this application");
-      expect(addLogStub.called).to.be.false;
       expect(jsonSpy.called).to.be.false;
     });
 
@@ -126,7 +120,6 @@ describe("updateApplication", () => {
 
       expect(boomConflict.calledOnce).to.be.true;
       expect(boomConflict.firstCall.args[0]).to.equal(APPLICATION_ERROR_MESSAGES.EDIT_TOO_SOON);
-      expect(addLogStub.called).to.be.false;
       expect(jsonSpy.called).to.be.false;
     });
 

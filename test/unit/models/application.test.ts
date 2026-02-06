@@ -1,8 +1,10 @@
 import chai from "chai";
+import sinon from "sinon";
 const { expect } = chai;
 const cleanDb = require("../../utils/cleanDb");
 const applicationsData = require("../../fixtures/applications/applications")();
 const ApplicationModel = require("../../../models/applications");
+const logsModel = require("../../../models/logs");
 
 describe("applications", function () {
   let applicationId1: string,
@@ -298,11 +300,29 @@ describe("applications", function () {
   });
 
   describe("updateApplication", function () {
+    let addLogStub: sinon.SinonStub;
+
+    beforeEach(function () {
+      addLogStub = sinon.stub(logsModel, "addLog").resolves();
+    });
+
+    afterEach(function () {
+      sinon.restore();
+    });
+
     it("should return success when application exists, userId matches, and no previous edit", async function () {
       const dataToUpdate = { "intro.introduction": "Updated introduction" };
-      const result = await ApplicationModel.updateApplication(dataToUpdate, applicationId1, "faksdjfkdfjdkfjksdfkj");
+      const result = await ApplicationModel.updateApplication(
+        dataToUpdate,
+        applicationId1,
+        "faksdjfkdfjdkfjksdfkj",
+        "test-username",
+        {}
+      );
 
       expect(result.status).to.be.equal("success");
+      expect(addLogStub.calledOnce).to.be.true;
+      expect(addLogStub.firstCall.args[1]).to.deep.include({ applicationId: applicationId1, userId: "faksdjfkdfjdkfjksdfkj", username: "test-username" });
 
       const application = await ApplicationModel.getApplicationById(applicationId1);
       expect(application.intro.introduction).to.be.equal("Updated introduction");
@@ -314,17 +334,27 @@ describe("applications", function () {
       const result = await ApplicationModel.updateApplication(
         dataToUpdate,
         "non-existent-application-id",
-        "faksdjfkdfjdkfjksdfkj"
+        "faksdjfkdfjdkfjksdfkj",
+        "test-username",
+        {}
       );
 
       expect(result.status).to.be.equal("notFound");
+      expect(addLogStub.called).to.be.false;
     });
 
     it("should return unauthorized when userId does not match application owner", async function () {
       const dataToUpdate = { "intro.introduction": "Updated" };
-      const result = await ApplicationModel.updateApplication(dataToUpdate, applicationId1, "different-user-id");
+      const result = await ApplicationModel.updateApplication(
+        dataToUpdate,
+        applicationId1,
+        "different-user-id",
+        "test-username",
+        {}
+      );
 
       expect(result.status).to.be.equal("unauthorized");
+      expect(addLogStub.called).to.be.false;
 
       const application = await ApplicationModel.getApplicationById(applicationId1);
       expect(application.intro).to.not.have.property("introduction", "Updated");
@@ -335,12 +365,26 @@ describe("applications", function () {
       const newApplicationId = await ApplicationModel.addApplication(applicationData);
 
       const firstUpdate = { "intro.introduction": "First edit" };
-      const firstResult = await ApplicationModel.updateApplication(firstUpdate, newApplicationId, "edit-test-user");
+      const firstResult = await ApplicationModel.updateApplication(
+        firstUpdate,
+        newApplicationId,
+        "edit-test-user",
+        "test-username",
+        {}
+      );
       expect(firstResult.status).to.be.equal("success");
+      expect(addLogStub.calledOnce).to.be.true;
 
       const secondUpdate = { "intro.forFun": "Second edit" };
-      const secondResult = await ApplicationModel.updateApplication(secondUpdate, newApplicationId, "edit-test-user");
+      const secondResult = await ApplicationModel.updateApplication(
+        secondUpdate,
+        newApplicationId,
+        "edit-test-user",
+        "test-username",
+        {}
+      );
       expect(secondResult.status).to.be.equal("tooSoon");
+      expect(addLogStub.calledOnce).to.be.true;
     });
   });
 });
