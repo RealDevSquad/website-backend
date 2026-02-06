@@ -6,23 +6,23 @@ const { APPLICATION_STATUS_TYPES, APPLICATION_ROLES } = require("../../constants
 const { phoneNumberRegex } = require("../../constants/subscription-validator");
 const logger = require("../../utils/logger");
 
+const socialLinkSchema = joi
+  .object({
+    phoneNo: joi.string().optional().regex(phoneNumberRegex).message('"phoneNo" must be in a valid format'),
+    github: joi.string().min(1).optional(),
+    instagram: joi.string().min(1).optional(),
+    linkedin: joi.string().min(1).optional(),
+    twitter: joi.string().min(1).optional(),
+    peerlist: joi.string().min(1).optional(),
+    behance: joi.string().min(1).optional(),
+    dribbble: joi.string().min(1).optional(),
+  })
+  .optional();
+
 const validateApplicationData = async (req: CustomRequest, res: CustomResponse, next: NextFunction) => {
   if (req.body.socialLink?.phoneNo) {
     req.body.socialLink.phoneNo = req.body.socialLink.phoneNo.trim();
   }
-
-  const socialLinkSchema = joi
-    .object({
-      phoneNo: joi.string().optional().regex(phoneNumberRegex).message('"phoneNo" must be in a valid format'),
-      github: joi.string().min(1).optional(),
-      instagram: joi.string().min(1).optional(),
-      linkedin: joi.string().min(1).optional(),
-      twitter: joi.string().min(1).optional(),
-      peerlist: joi.string().min(1).optional(),
-      behance: joi.string().min(1).optional(),
-      dribbble: joi.string().min(1).optional(),
-    })
-    .optional();
 
   const schema = joi
     .object()
@@ -117,19 +117,6 @@ const validateApplicationUpdateData = async (req: CustomRequest, res: CustomResp
   if (req.body.socialLink?.phoneNo) {
     req.body.socialLink.phoneNo = req.body.socialLink.phoneNo.trim();
   }
-
-  const socialLinkSchema = joi
-    .object({
-      phoneNo: joi.string().optional().regex(phoneNumberRegex).message('"phoneNo" must be in a valid format'),
-      github: joi.string().min(1).optional(),
-      instagram: joi.string().min(1).optional(),
-      linkedin: joi.string().min(1).optional(),
-      twitter: joi.string().min(1).optional(),
-      peerlist: joi.string().min(1).optional(),
-      behance: joi.string().min(1).optional(),
-      dribbble: joi.string().min(1).optional(),
-    })
-    .optional();
 
   const professionalSchema = joi
     .object({
