@@ -1,4 +1,6 @@
 import { application } from "../types/application";
+import { addLog } from "./logs";
+const { logType } = require("../constants/logs");
 const firestore = require("../utils/firestore");
 const logger = require("../utils/logger");
 const ApplicationsModel = firestore.collection("applicants");
@@ -131,7 +133,9 @@ const addApplication = async (data: application) => {
 const updateApplication = async (
   dataToUpdate: object,
   applicationId: string,
-  userId: string
+  userId: string,
+  username: string,
+  rawBody: object
 ) => {
   const currentTime = Date.now();
   const twentyFourHoursInMilliseconds = convertDaysToMilliseconds(1);
@@ -168,6 +172,14 @@ const updateApplication = async (
 
     return { status: APPLICATION_STATUS.success };
   });
+
+  if (result.status === APPLICATION_STATUS.success) {
+    await addLog(
+      logType.APPLICATION_UPDATED,
+      { applicationId, username, userId },
+      rawBody
+    );
+  }
 
   return result;
 };

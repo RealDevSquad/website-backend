@@ -1,7 +1,6 @@
 import { addLog } from "../models/logs";
 const { logType } = require("../constants/logs");
 import { CustomRequest, CustomResponse } from "../types/global";
-import { applicationUpdatePayload } from "../types/application";
 const { INTERNAL_SERVER_ERROR } = require("../constants/errorMessages");
 const ApplicationModel = require("../models/applications");
 const { API_RESPONSE_MESSAGES, APPLICATION_ERROR_MESSAGES, APPLICATION_LOG_MESSAGES, APPLICATION_STATUS } = require("../constants/application");
@@ -9,7 +8,7 @@ const { createApplicationService } = require("../services/applicationService");
 const { Conflict } = require("http-errors");
 const logger = require("../utils/logger");
 const { APPLICATION_STATUS_TYPES } = require("../constants/application");
-import { application } from "../types/application";
+const { buildApplicationUpdatePayload } = require("../utils/application");
 
 const getAllOrUserApplication = async (req: CustomRequest, res: CustomResponse): Promise<any> => {
   try {
@@ -103,35 +102,15 @@ const addApplication = async (req: CustomRequest, res: CustomResponse) => {
   }
 };
 
-const buildApplicationUpdatePayload = (body: applicationUpdatePayload) => {
-  const dataToUpdate: applicationUpdatePayload = {};
-
-  if (body.imageUrl) dataToUpdate.imageUrl = body.imageUrl;
-  if (body.foundFrom) dataToUpdate.foundFrom = body.foundFrom;
-  if (body.socialLink) dataToUpdate.socialLink = body.socialLink;
-
-  if (body.introduction) dataToUpdate["intro.introduction"] = body.introduction;
-  if (body.forFun) dataToUpdate["intro.forFun"] = body.forFun;
-  if (body.funFact) dataToUpdate["intro.funFact"] = body.funFact;
-  if (body.whyRds) dataToUpdate["intro.whyRds"] = body.whyRds;
-  if (body.numberOfHours) dataToUpdate["intro.numberOfHours"] = body.numberOfHours;
-
-  if (body.professional && typeof body.professional === "object") {
-    if (body.professional.institution) dataToUpdate["professional.institution"] = body.professional.institution;
-    if (body.professional.skills) dataToUpdate["professional.skills"] = body.professional.skills;
-  }
-
-  return dataToUpdate;
-};
-
 const updateApplication = async (req: CustomRequest, res: CustomResponse) => {
   try {
     const { applicationId } = req.params;
     const rawBody = req.body;
     const dataToUpdate = buildApplicationUpdatePayload(rawBody);
     const userId = req.userData.id;
+    const username = req.userData.username;
 
-    const result = await ApplicationModel.updateApplication(dataToUpdate, applicationId, userId);
+    const result = await ApplicationModel.updateApplication(dataToUpdate, applicationId, userId, username, rawBody);
 
     switch (result.status) {
       case APPLICATION_STATUS.notFound:
@@ -140,21 +119,10 @@ const updateApplication = async (req: CustomRequest, res: CustomResponse) => {
         return res.boom.unauthorized("You are not authorized to edit this application");
       case APPLICATION_STATUS.tooSoon:
         return res.boom.conflict(APPLICATION_ERROR_MESSAGES.EDIT_TOO_SOON);
-      case APPLICATION_STATUS.success: {
-        const applicationLog = {
-          type: logType.APPLICATION_UPDATED,
-          meta: {
-            applicationId,
-            username: req.userData.username,
-            userId,
-          },
-          body: rawBody,
-        };
-        await addLog(applicationLog.type, applicationLog.meta, applicationLog.body);
+      case APPLICATION_STATUS.success:
         return res.json({
           message: "Application updated successfully!",
         });
-      }
       default:
         return res.boom.badImplementation(INTERNAL_SERVER_ERROR);
     }

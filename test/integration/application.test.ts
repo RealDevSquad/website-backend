@@ -689,21 +689,29 @@ describe("Application", function () {
           expect(res.body.nudgeCount).to.be.equal(1);
 
           const twentyFiveHoursAgo = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
-          applicationModel.updateApplication({ lastNudgeAt: twentyFiveHoursAgo }, nudgeApplicationId, userId).then(() => {
-            chai
-              .request(app)
-              .patch(`/applications/${nudgeApplicationId}/nudge`)
-              .set("cookie", `${cookieName}=${jwt}`)
-              .end(function (err, res) {
-                if (err) return done(err);
+          applicationModel
+            .updateApplication(
+              { lastNudgeAt: twentyFiveHoursAgo },
+              nudgeApplicationId,
+              userId,
+              appOwner.username,
+              {}
+            )
+            .then(() => {
+              chai
+                .request(app)
+                .patch(`/applications/${nudgeApplicationId}/nudge`)
+                .set("cookie", `${cookieName}=${jwt}`)
+                .end(function (err, res) {
+                  if (err) return done(err);
 
-                expect(res).to.have.status(200);
-                expect(res.body.message).to.be.equal(API_RESPONSE_MESSAGES.NUDGE_SUCCESS);
-                expect(res.body.nudgeCount).to.be.equal(2);
-                expect(res.body.lastNudgeAt).to.be.a("string");
-                done();
-              });
-          });
+                  expect(res).to.have.status(200);
+                  expect(res.body.message).to.be.equal(API_RESPONSE_MESSAGES.NUDGE_SUCCESS);
+                  expect(res.body.nudgeCount).to.be.equal(2);
+                  expect(res.body.lastNudgeAt).to.be.a("string");
+                  done();
+                });
+            })
         });
     });
 
