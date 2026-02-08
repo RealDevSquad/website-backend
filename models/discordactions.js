@@ -376,6 +376,22 @@ const fetchGroupToUserMapping = async (roleIds) => {
   }
 };
 
+const shouldAddIdleUser = async (userStatus, tasksModel) => {
+  try {
+    const currentState = userStatus.currentStatus?.state;
+    if (currentState !== userState.IDLE) {
+      return false;
+    }
+
+    const hasActiveTask = await checkIfUserHasLiveTasks(userStatus.userId, tasksModel);
+
+    return !hasActiveTask;
+  } catch (error) {
+    logger.error(`Error checking if user should be idle: ${error.message}`);
+    return false;
+  }
+};
+
 const updateIdleUsersOnDiscord = async (dev) => {
   let totalIdleUsers = 0;
   const totalGroupIdleRolesApplied = { count: 0, response: [] };
@@ -419,11 +435,8 @@ const updateIdleUsersOnDiscord = async (dev) => {
               if (isUserArchived) {
                 totalArchivedUsers++;
               } else if (dev === "true" && !allMavens.includes(userData.data().discordId)) {
-                const hasActiveTask = await checkIfUserHasLiveTasks(userStatus.userId, tasksModel);
-                const currentState = userStatus.currentStatus?.state;
-                const isOOO = currentState === userState.OOO;
-
-                if (!hasActiveTask && !isOOO) {
+                const shouldAdd = await shouldAddIdleUser(userStatus, tasksModel);
+                if (shouldAdd) {
                   userStatus.userid = userData.data().discordId;
                   allIdleUsers.push(userStatus);
                 }
@@ -658,11 +671,8 @@ const updateIdle7dUsersOnDiscord = async (dev) => {
                 if (isUserArchived) {
                   totalArchivedUsers++;
                 } else if (dev === "true" && !allMavens.includes(userData.data().discordId)) {
-                  const hasActiveTask = await checkIfUserHasLiveTasks(userStatus.userId, tasksModel);
-                  const currentState = userStatus.currentStatus?.state;
-                  const isOOO = currentState === userState.OOO;
-
-                  if (!hasActiveTask && !isOOO) {
+                  const shouldAdd = await shouldAddIdleUser(userStatus, tasksModel);
+                  if (shouldAdd) {
                     userStatus.userid = userData.data().discordId;
                     allIdle7dUsers.push(userStatus);
                   }
