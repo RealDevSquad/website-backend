@@ -1,7 +1,7 @@
 export type ApplicationRole = "developer" | "designer" | "product_manager" | "project_manager" | "qa" | "social_media";
 
 export type SocialLink = {
-  phoneNo?: string;
+  phoneNumber?: string;
   github?: string;
   instagram?: string;
   linkedin?: string;

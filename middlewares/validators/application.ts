@@ -8,7 +8,7 @@ const logger = require("../../utils/logger");
 
 const socialLinkSchema = joi
   .object({
-    phoneNo: joi.string().optional().regex(phoneNumberRegex).message('"phoneNo" must be in a valid format'),
+    phoneNumber: joi.string().optional().regex(phoneNumberRegex).message('"phoneNumber" must be in a valid format'),
     github: joi.string().min(1).optional(),
     instagram: joi.string().min(1).optional(),
     linkedin: joi.string().min(1).optional(),
@@ -20,8 +20,8 @@ const socialLinkSchema = joi
   .optional();
 
 const validateApplicationData = async (req: CustomRequest, res: CustomResponse, next: NextFunction) => {
-  if (req.body.socialLink?.phoneNo) {
-    req.body.socialLink.phoneNo = req.body.socialLink.phoneNo.trim();
+  if (req.body.socialLink?.phoneNumber) {
+    req.body.socialLink.phoneNumber = req.body.socialLink.phoneNumber.trim();
   }
 
   const schema = joi
@@ -114,8 +114,8 @@ const validateApplicationFeedbackData = async (req: CustomRequest, res: CustomRe
 };
 
 const validateApplicationUpdateData = async (req: CustomRequest, res: CustomResponse, next: NextFunction) => {
-  if (req.body.socialLink?.phoneNo) {
-    req.body.socialLink.phoneNo = req.body.socialLink.phoneNo.trim();
+  if (req.body.socialLink?.phoneNumber) {
+    req.body.socialLink.phoneNumber = req.body.socialLink.phoneNumber.trim();
   }
 
   const professionalSchema = joi

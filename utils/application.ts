@@ -41,7 +41,7 @@ const FLAT_FIELD_MAP: Record<keyof Omit<applicationUpdatePayload, "professional"
 };
 
 const PROFESSIONAL_KEYS = ["institution", "skills"] as const;
-const SOCIAL_LINK_KEYS = ["phoneNo", "github", "instagram", "linkedin", "twitter", "peerlist", "behance", "dribbble"] as const;
+const SOCIAL_LINK_KEYS = ["phoneNumber", "github", "instagram", "linkedin", "twitter", "peerlist", "behance", "dribbble"] as const;
 
 const buildApplicationUpdatePayload = (body: applicationUpdatePayload): Record<string, string | number | undefined> => {
   const dataToUpdate: Record<string, string | number | undefined> = {};
