@@ -8,8 +8,10 @@ const { findSubscribedGroupIds } = require("../utils/helper");
 const { retrieveUsers } = require("../services/dataAccessLayer");
 const { BATCH_SIZE_IN_CLAUSE } = require("../constants/firebase");
 const { getAllUserStatus, getGroupRole, getUserStatus } = require("./userStatus");
-const { normalizeTimestamp } = require("../utils/userStatus");
+const { normalizeTimestamp, checkIfUserHasLiveTasks } = require("../utils/userStatus");
 const { userState, POST_OOO_GRACE_PERIOD_IN_DAYS } = require("../constants/userStatus");
+const config = require("config");
+const logger = require("../utils/logger");
 const { ONE_DAY_IN_MS, SIMULTANEOUS_WORKER_CALLS } = require("../constants/users");
 const userModel = firestore.collection("users");
 const photoVerificationModel = firestore.collection("photo-verification");
@@ -374,6 +376,22 @@ const fetchGroupToUserMapping = async (roleIds) => {
   }
 };
 
+const shouldAddIdleUser = async (userStatus, tasksModel) => {
+  try {
+    const currentState = userStatus.currentStatus?.state;
+    if (currentState !== userState.IDLE) {
+      return false;
+    }
+
+    const hasActiveTask = await checkIfUserHasLiveTasks(userStatus.userId, tasksModel);
+
+    return !hasActiveTask;
+  } catch (error) {
+    logger.error(`Error checking if user should be idle: ${error.message}`);
+    return false;
+  }
+};
+
 const updateIdleUsersOnDiscord = async (dev) => {
   let totalIdleUsers = 0;
   const totalGroupIdleRolesApplied = { count: 0, response: [] };
@@ -417,8 +435,11 @@ const updateIdleUsersOnDiscord = async (dev) => {
               if (isUserArchived) {
                 totalArchivedUsers++;
               } else if (dev === "true" && !allMavens.includes(userData.data().discordId)) {
-                userStatus.userid = userData.data().discordId;
-                allIdleUsers.push(userStatus);
+                const shouldAdd = await shouldAddIdleUser(userStatus, tasksModel);
+                if (shouldAdd) {
+                  userStatus.userid = userData.data().discordId;
+                  allIdleUsers.push(userStatus);
+                }
               }
             }
           } catch (error) {
@@ -650,8 +671,11 @@ const updateIdle7dUsersOnDiscord = async (dev) => {
                 if (isUserArchived) {
                   totalArchivedUsers++;
                 } else if (dev === "true" && !allMavens.includes(userData.data().discordId)) {
-                  userStatus.userid = userData.data().discordId;
-                  allIdle7dUsers.push(userStatus);
+                  const shouldAdd = await shouldAddIdleUser(userStatus, tasksModel);
+                  if (shouldAdd) {
+                    userStatus.userid = userData.data().discordId;
+                    allIdle7dUsers.push(userStatus);
+                  }
                 }
               }
             }
