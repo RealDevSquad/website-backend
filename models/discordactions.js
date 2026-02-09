@@ -407,15 +407,19 @@ const updateIdleUsersOnDiscord = async (dev) => {
 
   try {
     groupIdleRole = await getGroupRole("group-idle");
+    if (!groupIdleRole?.roleExists || !groupIdleRole?.role?.roleid) {
+      throw new Error("Idle Role does not exist");
+    }
     groupIdleRoleId = groupIdleRole.role.roleid;
-    if (!groupIdleRole.roleExists) throw new Error("Idle Role does not exist");
     const { allUserStatus } = await getAllUserStatus({ state: userState.IDLE });
     const discordUsers = await getDiscordMembers();
     const usersHavingIdleRole = [];
     const discordMemberIds = new Set();
 
     discordUsers?.forEach((discordUser) => {
-      const discordId = discordUser.user.id;
+      const discordId = discordUser.user?.id;
+      if (!discordId) return;
+
       discordMemberIds.add(discordId);
 
       const isDeveloper = discordUser.roles?.includes(discordDeveloperRoleId);
