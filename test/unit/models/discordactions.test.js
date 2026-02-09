@@ -1079,7 +1079,7 @@ describe("discordactions", function () {
       await cleanDb();
     });
 
-    it("should return  totalIdleUsers as 2,totalArchivedUsers as 0, totalRoleToBeAdded as 2", async function () {
+    it("should return  totalIdleUsers as 1,totalArchivedUsers as 0, totalRoleToBeAdded as 1", async function () {
       const dev = "true";
       const res = await updateIdleUsersOnDiscord(dev);
       expect(res.totalIdleUsers).to.be.equal(1);
