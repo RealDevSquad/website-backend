@@ -137,10 +137,10 @@ const updateApplication = async (
   username: string,
   rawBody: object
 ) => {
-  const currentTime = Date.now();
-  const twentyFourHoursInMilliseconds = convertDaysToMilliseconds(1);
-
   const result = await firestore.runTransaction(async (transaction) => {
+    const currentTime = Date.now();
+    const twentyFourHoursInMilliseconds = convertDaysToMilliseconds(1);
+
     const applicationRef = ApplicationsModel.doc(applicationId);
     const applicationDoc = await transaction.get(applicationRef);
 

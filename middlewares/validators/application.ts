@@ -8,7 +8,7 @@ const logger = require("../../utils/logger");
 
 const socialLinkSchema = joi
   .object({
-    phoneNo: joi.string().optional().regex(phoneNumberRegex).message('"phoneNo" must be in a valid format'),
+    phoneNumber: joi.string().optional().regex(phoneNumberRegex).message('"phoneNumber" must be in a valid format'),
     github: joi.string().min(1).optional(),
     instagram: joi.string().min(1).optional(),
     linkedin: joi.string().min(1).optional(),
@@ -20,8 +20,8 @@ const socialLinkSchema = joi
   .optional();
 
 const validateApplicationData = async (req: CustomRequest, res: CustomResponse, next: NextFunction) => {
-  if (req.body.socialLink?.phoneNo) {
-    req.body.socialLink.phoneNo = req.body.socialLink.phoneNo.trim();
+  if (req.body.socialLink?.phoneNumber) {
+    req.body.socialLink.phoneNumber = req.body.socialLink.phoneNumber.trim();
   }
 
   const schema = joi
@@ -65,7 +65,7 @@ const validateApplicationData = async (req: CustomRequest, res: CustomResponse, 
     next();
   } catch (error) {
     logger.error(`Error in validating application data: ${error}`);
-    res.boom.badRequest(error.details[0].message);
+    return res.boom.badRequest(error.details[0].message);
   }
 };
 
@@ -109,13 +109,13 @@ const validateApplicationFeedbackData = async (req: CustomRequest, res: CustomRe
     next();
   } catch (error) {
     logger.error(`Error in validating recruiter data: ${error}`);
-    res.boom.badRequest(error.details[0].message);
+    return res.boom.badRequest(error.details[0].message);
   }
 };
 
 const validateApplicationUpdateData = async (req: CustomRequest, res: CustomResponse, next: NextFunction) => {
-  if (req.body.socialLink?.phoneNo) {
-    req.body.socialLink.phoneNo = req.body.socialLink.phoneNo.trim();
+  if (req.body.socialLink?.phoneNumber) {
+    req.body.socialLink.phoneNumber = req.body.socialLink.phoneNumber.trim();
   }
 
   const professionalSchema = joi
@@ -158,7 +158,7 @@ const validateApplicationUpdateData = async (req: CustomRequest, res: CustomResp
     next();
   } catch (error) {
     logger.error(`Error in validating application update data: ${error}`);
-    res.boom.badRequest(error.details[0].message);
+    return res.boom.badRequest(error.details[0].message);
   }
 };
 
@@ -176,7 +176,7 @@ const validateApplicationQueryParam = async (req: CustomRequest, res: CustomResp
     next();
   } catch (error) {
     logger.error(`Error validating query params : ${error}`);
-    res.boom.badRequest(error.details[0].message);
+    return res.boom.badRequest(error.details[0].message);
   }
 };
 

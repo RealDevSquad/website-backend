@@ -114,14 +114,14 @@ const updateApplication = async (req: CustomRequest, res: CustomResponse) => {
 
     switch (result.status) {
       case APPLICATION_STATUS.notFound:
-        return res.boom.notFound("Application not found");
+        return res.boom.notFound(APPLICATION_ERROR_MESSAGES.APPLICATION_NOT_FOUND);
       case APPLICATION_STATUS.unauthorized:
-        return res.boom.unauthorized("You are not authorized to edit this application");
+        return res.boom.unauthorized(APPLICATION_ERROR_MESSAGES.APPLICATION_EDIT_UNAUTHORIZED);
       case APPLICATION_STATUS.tooSoon:
         return res.boom.conflict(APPLICATION_ERROR_MESSAGES.EDIT_TOO_SOON);
       case APPLICATION_STATUS.success:
         return res.json({
-          message: "Application updated successfully!",
+          message: API_RESPONSE_MESSAGES.APPLICATION_UPDATED_SUCCESS,
         });
       default:
         return res.boom.badImplementation(INTERNAL_SERVER_ERROR);
