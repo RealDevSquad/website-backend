@@ -4,6 +4,7 @@ const Sinon = sinon;
 const { expect } = chai;
 const applicationValidator = require("../../../middlewares/validators/application");
 const applicationsData = require("../../fixtures/applications/applications")();
+const { APPLICATION_ERROR_MESSAGES } = require("../../../constants/application");
 
 describe("application validator test", function () {
   describe("validateApplicationData", function () {
@@ -245,6 +246,100 @@ describe("application validator test", function () {
       };
       await applicationValidator.validateApplicationQueryParam(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(0);
+    });
+  });
+
+  describe("validateApplicationPicture", function () {
+    let req: any;
+    let res: any;
+    let nextSpy: sinon.SinonSpy;
+
+    beforeEach(function () {
+      req = {};
+      res = {
+        boom: {
+          badRequest: Sinon.spy(),
+          unsupportedMediaType: Sinon.spy(),
+        },
+      };
+      nextSpy = Sinon.spy();
+    });
+
+    it("should call next when file is valid (buffer and mimetype png)", async function () {
+      req.file = {
+        buffer: Buffer.from("valid-image"),
+        mimetype: "image/png",
+        originalname: "test.png",
+      };
+      await applicationValidator.validateApplicationPicture(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(1);
+      expect(res.boom.badRequest.callCount).to.equal(0);
+      expect(res.boom.unsupportedMediaType.callCount).to.equal(0);
+    });
+
+    it("should call next when file is valid (mimetype jpeg)", async function () {
+      req.file = {
+        buffer: Buffer.from("valid-image"),
+        mimetype: "image/jpeg",
+        originalname: "test.jpg",
+      };
+      await applicationValidator.validateApplicationPicture(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(1);
+      expect(res.boom.badRequest.callCount).to.equal(0);
+      expect(res.boom.unsupportedMediaType.callCount).to.equal(0);
+    });
+
+    it("should return badRequest when req.file is missing", async function () {
+      req.file = undefined;
+      await applicationValidator.validateApplicationPicture(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(0);
+      expect(res.boom.badRequest.callCount).to.equal(1);
+      expect(res.boom.badRequest.firstCall.args[0]).to.equal(APPLICATION_ERROR_MESSAGES.PICTURE_FILE_MISSING);
+    });
+
+    it("should return badRequest when file.buffer is empty", async function () {
+      req.file = {
+        buffer: Buffer.alloc(0),
+        mimetype: "image/png",
+        originalname: "empty.png",
+      };
+      await applicationValidator.validateApplicationPicture(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(0);
+      expect(res.boom.badRequest.callCount).to.equal(1);
+      expect(res.boom.badRequest.firstCall.args[0]).to.equal(APPLICATION_ERROR_MESSAGES.PICTURE_FILE_EMPTY);
+    });
+
+    it("should return badRequest when file.buffer is missing", async function () {
+      req.file = {
+        mimetype: "image/png",
+        originalname: "test.png",
+      };
+      await applicationValidator.validateApplicationPicture(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(0);
+      expect(res.boom.badRequest.callCount).to.equal(1);
+      expect(res.boom.badRequest.firstCall.args[0]).to.equal(APPLICATION_ERROR_MESSAGES.PICTURE_FILE_EMPTY);
+    });
+
+    it("should return unsupportedMediaType when mimetype is not png or jpeg", async function () {
+      req.file = {
+        buffer: Buffer.from("data"),
+        mimetype: "application/pdf",
+        originalname: "doc.pdf",
+      };
+      await applicationValidator.validateApplicationPicture(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(0);
+      expect(res.boom.unsupportedMediaType.callCount).to.equal(1);
+      expect(res.boom.unsupportedMediaType.firstCall.args[0]).to.equal("Only image/jpeg, image/png supported");
+    });
+
+    it("should return unsupportedMediaType when mimetype is missing", async function () {
+      req.file = {
+        buffer: Buffer.from("data"),
+        originalname: "test.png",
+      };
+      await applicationValidator.validateApplicationPicture(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(0);
+      expect(res.boom.unsupportedMediaType.callCount).to.equal(1);
     });
   });
 });

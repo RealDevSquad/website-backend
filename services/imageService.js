@@ -32,6 +32,25 @@ const uploadProfilePicture = async ({ file, userId, coordinates }) => {
   }
 };
 
+const uploadApplicationImage = async ({ file, userId }) => {
+  try {
+    const parser = new DatauriParser();
+    const imageDataUri = parser.format(file.originalname, file.buffer);
+    const imageDataInBase64 = imageDataUri.content;
+    const imagePublicId = `applications/${userId}/profile`;
+    const uploadResponse = await upload(imageDataInBase64, {
+      public_id: imagePublicId,
+      overwrite: true,
+      tags: cloudinaryMetaData.APPLICATION.TAGS,
+    });
+    const { public_id: publicId, secure_url: url } = uploadResponse;
+    return { publicId, url };
+  } catch (err) {
+    logger.error(`Error while uploading application image ${err}`);
+    throw err;
+  }
+};
+
 /**
  * upload badge image to cloudinary
  * @param file { Object }: File object
@@ -58,4 +77,5 @@ async function uploadBadgeImage({ file, badgeName }) {
 module.exports = {
   uploadProfilePicture,
   uploadBadgeImage,
+  uploadApplicationImage,
 };

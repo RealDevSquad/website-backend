@@ -8,6 +8,7 @@ const { createApplicationService } = require("../services/applicationService");
 const { Conflict } = require("http-errors");
 const logger = require("../utils/logger");
 const { APPLICATION_STATUS_TYPES } = require("../constants/application");
+const imageService = require("../services/imageService");
 
 const getAllOrUserApplication = async (req: CustomRequest, res: CustomResponse): Promise<any> => {
   try {
@@ -211,6 +212,25 @@ const nudgeApplication = async (req: CustomRequest, res: CustomResponse) => {
   }
 };
 
+const postUserPicture = async (req: CustomRequest, res: CustomResponse): Promise<any> => {
+  try {
+    const file = (req as CustomRequest & { file?: { buffer: Buffer; originalname: string } }).file;
+    const userId = req.userData.id;
+    if (!file) {
+      return res.boom.badRequest(APPLICATION_ERROR_MESSAGES.PICTURE_FILE_MISSING);
+    }
+    const imageData = await imageService.uploadApplicationImage({ file, userId });
+
+    return res.status(201).json({
+      message: "Image uploaded successfully",
+      image: imageData,
+    });
+  } catch (err) {
+    logger.error(`Error while uploading application image: ${err}`);
+    return res.boom.badImplementation(INTERNAL_SERVER_ERROR);
+  }
+};
+
 module.exports = {
   getAllOrUserApplication,
   addApplication,
@@ -218,4 +238,5 @@ module.exports = {
   getApplicationById,
   nudgeApplication,
   submitApplicationFeedback,
+  postUserPicture,
 };
