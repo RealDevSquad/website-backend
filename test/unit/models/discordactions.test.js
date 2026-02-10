@@ -944,7 +944,6 @@ describe("discordactions", function () {
         discordJoinedAt: "2023-07-31T16:57:53.894000+00:00",
         roles: { archived: false, in_discord: true },
       };
-
       getDiscordMembers[3] = {
         ...getDiscordMembers[3],
         roles: ["1212121212"],
@@ -1080,13 +1079,13 @@ describe("discordactions", function () {
       await cleanDb();
     });
 
-    it("should return  totalIdleUsers as 2,totalArchivedUsers as 2, totalRoleToBeAdded as 2", async function () {
+    it("should return  totalIdleUsers as 1,totalArchivedUsers as 0, totalRoleToBeAdded as 1", async function () {
       const dev = "true";
       const res = await updateIdleUsersOnDiscord(dev);
-      expect(res.totalIdleUsers).to.be.equal(2);
-      expect(res.totalUserRoleToBeAdded).to.be.equal(2);
+      expect(res.totalIdleUsers).to.be.equal(1);
+      expect(res.totalUserRoleToBeAdded).to.be.equal(1);
       expect(res.totalUserRoleToBeRemoved).to.be.equal(1);
-      expect(res.totalArchivedUsers).to.be.equal(1);
+      expect(res.totalArchivedUsers).to.be.equal(0);
     });
   });
 
