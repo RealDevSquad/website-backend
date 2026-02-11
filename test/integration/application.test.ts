@@ -369,7 +369,7 @@ describe("Application", function () {
           }
 
           expect(res).to.have.status(200);
-          expect(res.body.message).to.be.equal("Application updated successfully!");
+          expect(res.body.message).to.be.equal("Application updated successfully");
           return done();
         });
     });

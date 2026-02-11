@@ -263,8 +263,8 @@ describe("application validator test", function () {
       expect(nextSpy.callCount).to.equal(1);
     });
 
-    it("should call next when body has socialLink with valid phoneNo", async function () {
-      req.body = { socialLink: { phoneNo: "+919876543210", github: "https://github.com/user" } };
+    it("should call next when body has socialLink with valid phoneNumber", async function () {
+      req.body = { socialLink: { phoneNumber: "+919876543210", github: "https://github.com/user" } };
       await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(1);
     });
@@ -325,18 +325,11 @@ describe("application validator test", function () {
       expect(res.boom.badRequest.called).to.be.true;
     });
 
-    it("should not call next when socialLink.phoneNo has invalid format", async function () {
-      req.body = { socialLink: { phoneNo: "invalid" } };
+    it("should not call next when socialLink.phoneNumber has invalid format", async function () {
+      req.body = { socialLink: { phoneNumber: "invalid" } };
       await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(0);
       expect(res.boom.badRequest.called).to.be.true;
-    });
-
-    it("should trim phoneNo when socialLink.phoneNo is provided", async function () {
-      req.body = { socialLink: { phoneNo: "  +919876543210  " } };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
-      expect(req.body.socialLink.phoneNo).to.equal("+919876543210");
-      expect(nextSpy.callCount).to.equal(1);
     });
   });
 

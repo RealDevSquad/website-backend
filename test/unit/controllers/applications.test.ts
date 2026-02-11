@@ -72,7 +72,7 @@ describe("updateApplication", () => {
       expect(updateApplicationStub.firstCall.args[4]).to.deep.equal(req.body);
 
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.firstCall.args[0].message).to.equal("Application updated successfully!");
+      expect(jsonSpy.firstCall.args[0].message).to.equal("Application updated successfully");
     });
 
     it("should build payload with professional and intro fields correctly", async () => {
