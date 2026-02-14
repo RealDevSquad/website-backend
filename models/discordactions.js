@@ -8,8 +8,10 @@ const { findSubscribedGroupIds } = require("../utils/helper");
 const { retrieveUsers } = require("../services/dataAccessLayer");
 const { BATCH_SIZE_IN_CLAUSE } = require("../constants/firebase");
 const { getAllUserStatus, getGroupRole, getUserStatus } = require("./userStatus");
-const { normalizeTimestamp } = require("../utils/userStatus");
+const { normalizeTimestamp, checkIfUserHasLiveTasks } = require("../utils/userStatus");
 const { userState, POST_OOO_GRACE_PERIOD_IN_DAYS } = require("../constants/userStatus");
+const config = require("config");
+const logger = require("../utils/logger");
 const { ONE_DAY_IN_MS, SIMULTANEOUS_WORKER_CALLS } = require("../constants/users");
 const userModel = firestore.collection("users");
 const photoVerificationModel = firestore.collection("photo-verification");
@@ -374,6 +376,22 @@ const fetchGroupToUserMapping = async (roleIds) => {
   }
 };
 
+const shouldAddIdleUser = async (userStatus, tasksModel) => {
+  try {
+    const currentState = userStatus.currentStatus?.state;
+    if (currentState !== userState.IDLE) {
+      return false;
+    }
+
+    const hasActiveTask = await checkIfUserHasLiveTasks(userStatus.userId, tasksModel);
+
+    return !hasActiveTask;
+  } catch (error) {
+    logger.error(`Error checking if user should be idle: ${error.message}`);
+    return false;
+  }
+};
+
 const updateIdleUsersOnDiscord = async (dev) => {
   let totalIdleUsers = 0;
   const totalGroupIdleRolesApplied = { count: 0, response: [] };
@@ -389,41 +407,67 @@ const updateIdleUsersOnDiscord = async (dev) => {
 
   try {
     groupIdleRole = await getGroupRole("group-idle");
+    if (!groupIdleRole?.roleExists || !groupIdleRole?.role?.roleid) {
+      throw new Error("Idle Role does not exist");
+    }
     groupIdleRoleId = groupIdleRole.role.roleid;
-    if (!groupIdleRole.roleExists) throw new Error("Idle Role does not exist");
     const { allUserStatus } = await getAllUserStatus({ state: userState.IDLE });
     const discordUsers = await getDiscordMembers();
     const usersHavingIdleRole = [];
+    const discordMemberIds = new Set();
+
     discordUsers?.forEach((discordUser) => {
-      const isDeveloper = discordUser.roles.includes(discordDeveloperRoleId);
-      const haveIdleRole = discordUser.roles.includes(groupIdleRole.role.roleid);
-      const isMaven = discordUser.roles.includes(discordMavenRoleId);
+      const discordId = discordUser.user?.id;
+      if (!discordId) return;
+
+      discordMemberIds.add(discordId);
+
+      const isDeveloper = discordUser.roles?.includes(discordDeveloperRoleId);
+      const haveIdleRole = discordUser.roles?.includes(groupIdleRoleId);
+      const isMaven = discordUser.roles?.includes(discordMavenRoleId);
 
       if (dev === "true" && isMaven) {
-        allMavens.push(discordUser.user.id);
+        allMavens.push(discordId);
       }
 
       if (isDeveloper && haveIdleRole) {
-        usersHavingIdleRole.push({ userid: discordUser.user.id });
+        usersHavingIdleRole.push({ userid: discordId });
       }
     });
+
     if (allUserStatus) {
       await Promise.all(
         allUserStatus.map(async (userStatus) => {
           try {
             const userData = await userModel.doc(userStatus.userId).get();
-            const isUserArchived = userData.data().roles.archived;
-            if (userData.exists) {
-              if (isUserArchived) {
-                totalArchivedUsers++;
-              } else if (dev === "true" && !allMavens.includes(userData.data().discordId)) {
-                userStatus.userid = userData.data().discordId;
+            if (!userData.exists) {
+              return;
+            }
+
+            const userDataObj = userData.data();
+            if (!userDataObj) {
+              logger.warn(`User data is null/undefined for userId: ${userStatus.userId}`);
+              return;
+            }
+
+            const discordId = userDataObj?.discordId;
+
+            if (!discordId || !discordMemberIds.has(discordId)) {
+              return;
+            }
+
+            const isUserArchived = userDataObj?.roles?.archived || false;
+            if (isUserArchived) {
+              totalArchivedUsers++;
+            } else if (dev === "true" && !allMavens.includes(discordId)) {
+              const shouldAdd = await shouldAddIdleUser(userStatus, tasksModel);
+              if (shouldAdd) {
+                userStatus.userid = discordId;
                 allIdleUsers.push(userStatus);
               }
             }
           } catch (error) {
-            logger.error(`error updating discordId in userStatus ${error.message}`);
-            throw new Error("error updating discordId in userStatus");
+            logger.error(`error updating discordId in userStatus for userId ${userStatus.userId}: ${error.message}`);
           }
         })
       );
@@ -650,8 +694,11 @@ const updateIdle7dUsersOnDiscord = async (dev) => {
                 if (isUserArchived) {
                   totalArchivedUsers++;
                 } else if (dev === "true" && !allMavens.includes(userData.data().discordId)) {
-                  userStatus.userid = userData.data().discordId;
-                  allIdle7dUsers.push(userStatus);
+                  const shouldAdd = await shouldAddIdleUser(userStatus, tasksModel);
+                  if (shouldAdd) {
+                    userStatus.userid = userData.data().discordId;
+                    allIdle7dUsers.push(userStatus);
+                  }
                 }
               }
             }

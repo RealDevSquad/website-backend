@@ -89,7 +89,7 @@ describe("application validator test", function () {
     });
   });
 
-  describe("validateApplicationUpdateData", function () {
+  describe("validateApplicationFeedbackData", function () {
     let req: any;
     let res: any;
     let nextSpy: sinon.SinonSpy;
@@ -111,7 +111,7 @@ describe("application validator test", function () {
         status: "accepted",
         feedback: "some feedback",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(1);
     });
 
@@ -119,7 +119,7 @@ describe("application validator test", function () {
       req.body = {
         batman: true,
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(0);
     });
 
@@ -127,7 +127,7 @@ describe("application validator test", function () {
       req.body = {
         status: "something",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(0);
     });
 
@@ -136,7 +136,7 @@ describe("application validator test", function () {
         status: "accepted",
         feedback: "Great work!",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(1);
     });
 
@@ -145,7 +145,7 @@ describe("application validator test", function () {
         status: "rejected",
         feedback: "Not a good fit",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(1);
     });
 
@@ -154,7 +154,7 @@ describe("application validator test", function () {
         status: "changes_requested",
         feedback: "Please update your skills section",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(1);
     });
 
@@ -162,7 +162,7 @@ describe("application validator test", function () {
       req.body = {
         status: "changes_requested",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(0);
     });
 
@@ -171,7 +171,7 @@ describe("application validator test", function () {
         status: "changes_requested",
         feedback: "",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(0);
     });
 
@@ -180,7 +180,7 @@ describe("application validator test", function () {
         status: "accepted",
         feedback: "",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(1);
     });
 
@@ -189,7 +189,7 @@ describe("application validator test", function () {
         status: "rejected",
         feedback: "",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(1);
     });
 
@@ -197,7 +197,7 @@ describe("application validator test", function () {
       req.body = {
         feedback: "Some feedback",
       };
-      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(0);
     });
 
@@ -205,8 +205,131 @@ describe("application validator test", function () {
       req.body = {
         status: null,
       };
+      await applicationValidator.validateApplicationFeedbackData(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(0);
+    });
+  });
+
+  describe("validateApplicationUpdateData", function () {
+    let req: any;
+    let res: any;
+    let nextSpy: sinon.SinonSpy;
+
+    const validWordString =
+      "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty " +
+      "twenty-one twenty-two twenty-three twenty-four twenty-five twenty-six twenty-seven twenty-eight twenty-nine thirty " +
+      "thirty-one thirty-two thirty-three thirty-four thirty-five thirty-six thirty-seven thirty-eight thirty-nine forty " +
+      "forty-one forty-two forty-three forty-four forty-five forty-six forty-seven forty-eight forty-nine fifty " +
+      "fifty-one fifty-two fifty-three fifty-four fifty-five fifty-six fifty-seven fifty-eight fifty-nine sixty " +
+      "sixty-one sixty-two sixty-three sixty-four sixty-five sixty-six sixty-seven sixty-eight sixty-nine seventy " +
+      "seventy-one seventy-two seventy-three seventy-four seventy-five seventy-six seventy-seven seventy-eight seventy-nine eighty " +
+      "eighty-one eighty-two eighty-three eighty-four eighty-five eighty-six eighty-seven eighty-eight eighty-nine ninety " +
+      "ninety-one ninety-two ninety-three ninety-four ninety-five ninety-six ninety-seven ninety-eight ninety-nine hundred";
+
+    beforeEach(function () {
+      req = { body: {} };
+      res = { boom: { badRequest: Sinon.spy() } };
+      nextSpy = Sinon.spy();
+    });
+
+    it("should call next when body has at least one allowed field (introduction)", async function () {
+      req.body = { introduction: "Updated intro" };
+      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(1);
+      expect(res.boom.badRequest.called).to.be.false;
+    });
+
+    it("should call next when body has imageUrl as valid URI", async function () {
+      req.body = { imageUrl: "https://example.com/photo.jpg" };
+      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(1);
+    });
+
+    it("should call next when body has foundFrom", async function () {
+      req.body = { foundFrom: "LinkedIn" };
+      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(1);
+    });
+
+    it("should call next when body has numberOfHours within range", async function () {
+      req.body = { numberOfHours: 50 };
+      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(1);
+    });
+
+    it("should call next when body has professional with institution and skills", async function () {
+      req.body = { professional: { institution: "MIT", skills: "React, Node.js, TypeScript" } };
+      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(1);
+    });
+
+    it("should call next when body has socialLink with valid phoneNumber", async function () {
+      req.body = { socialLink: { phoneNumber: "+919876543210", github: "https://github.com/user" } };
+      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(1);
+    });
+
+    it("should call next when body has forFun/funFact/whyRds with at least 100 words", async function () {
+      req.body = { forFun: validWordString };
+      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(1);
+    });
+
+    it("should not call next when body is empty", async function () {
+      req.body = {};
       await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
       expect(nextSpy.callCount).to.equal(0);
+      expect(res.boom.badRequest.calledOnce).to.be.true;
+      expect(res.boom.badRequest.firstCall.args[0]).to.include("at least one allowed field");
+    });
+
+    it("should not call next when body has only disallowed field", async function () {
+      req.body = { batman: true };
+      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(0);
+      expect(res.boom.badRequest.called).to.be.true;
+    });
+
+    it("should not call next when imageUrl is not a valid URI", async function () {
+      req.body = { imageUrl: "not-a-uri" };
+      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(0);
+      expect(res.boom.badRequest.called).to.be.true;
+    });
+
+    it("should not call next when professional.skills has fewer than 5 characters", async function () {
+      req.body = { professional: { skills: "abc" } };
+      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(0);
+      expect(res.boom.badRequest.called).to.be.true;
+    });
+
+    it("should not call next when forFun has fewer than 100 words", async function () {
+      req.body = { forFun: "just a few words here" };
+      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(0);
+      expect(res.boom.badRequest.called).to.be.true;
+    });
+
+    it("should not call next when numberOfHours is less than 1", async function () {
+      req.body = { numberOfHours: 0 };
+      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(0);
+      expect(res.boom.badRequest.called).to.be.true;
+    });
+
+    it("should not call next when numberOfHours is greater than 168", async function () {
+      req.body = { numberOfHours: 170 };
+      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(0);
+      expect(res.boom.badRequest.called).to.be.true;
+    });
+
+    it("should not call next when socialLink.phoneNumber has invalid format", async function () {
+      req.body = { socialLink: { phoneNumber: "invalid" } };
+      await applicationValidator.validateApplicationUpdateData(req, res, nextSpy);
+      expect(nextSpy.callCount).to.equal(0);
+      expect(res.boom.badRequest.called).to.be.true;
     });
   });
 

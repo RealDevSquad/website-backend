@@ -23,11 +23,16 @@ const checkCanGenerateDiscordLink = async (req: CustomRequest, res: CustomRespon
     }
 
     const approvedApplication = applications.find((application: { status: string; }) => application.status === 'accepted');
-    
+
     if (!approvedApplication) {
       return res.boom.forbidden("Only users with an accepted application can generate a Discord invite link.");
     }
 
+    if (approvedApplication.isNew !== true || !approvedApplication.role) {
+      return res.boom.forbidden("You are not eligible to generate a Discord invite link.");
+    }
+
+    req.approvedApplicationRole = approvedApplication.role;
     return next();
   } catch (error) {
     return res.boom.badImplementation("An error occurred while checking user applications.");

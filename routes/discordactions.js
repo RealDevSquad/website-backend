@@ -47,7 +47,7 @@ router.get("/invite", disableRoute, authenticate, getUserDiscordInvite);
  * Short-circuit this POST method for this endpoint
  * Refer https://github.com/Real-Dev-Squad/todo-action-items/issues/269 for more details.
  */
-router.post("/invite", disableRoute, authenticate, checkCanGenerateDiscordLink, generateInviteForUser);
+router.post("/invite", authenticate, checkCanGenerateDiscordLink, generateInviteForUser);
 
 router.delete("/roles", authenticate, checkIsVerifiedDiscord, deleteRole);
 router.get("/roles", authenticate, checkIsVerifiedDiscord, getGroupsRoleId);

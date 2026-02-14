@@ -1377,4 +1377,192 @@ describe("Discord actions", function () {
         });
     });
   });
+
+  describe("POST /discord-actions/groups (createGroupRole)", function () {
+    let testUserId;
+    let testUserAuthToken;
+
+    beforeEach(async function () {
+      testUserId = await addUser(userData[0]);
+      testUserAuthToken = authService.generateAuthToken({ userId: testUserId });
+
+      fetchStub.returns(
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ id: "discord-role-id-123" }),
+        })
+      );
+
+      sinon.stub(discordRolesModel, "isGroupRoleExists").resolves({
+        roleExists: false,
+      });
+    });
+
+    afterEach(async function () {
+      await cleanDb();
+    });
+
+    it("should create a group role with 'group-' prefix when role query param is not provided", function (done) {
+      const roleData = {
+        rolename: "developers",
+        description: "Test group role",
+      };
+
+      chai
+        .request(app)
+        .post("/discord-actions/groups")
+        .set("cookie", `${cookieName}=${testUserAuthToken}`)
+        .send(roleData)
+        .end((err, res) => {
+          if (err) {
+            return done(err);
+          }
+          expect(res).to.have.status(201);
+          expect(res.body).to.be.an("object");
+          expect(res.body.message).to.equal("Role created successfully!");
+          expect(res.body).to.have.property("id");
+          expect(fetchStub.calledOnce).to.equal(true);
+          const fetchCall = fetchStub.getCall(0);
+          const requestBody = JSON.parse(fetchCall.args[1].body);
+          expect(requestBody.rolename).to.equal("group-developers");
+
+          return done();
+        });
+    });
+
+    it("should create a group role with 'group-' prefix when role=false", function (done) {
+      const roleData = {
+        rolename: "developers",
+        description: "Test group role",
+      };
+
+      chai
+        .request(app)
+        .post("/discord-actions/groups?role=false")
+        .set("cookie", `${cookieName}=${testUserAuthToken}`)
+        .send(roleData)
+        .end((err, res) => {
+          if (err) {
+            return done(err);
+          }
+          expect(res).to.have.status(201);
+          expect(res.body).to.be.an("object");
+          expect(res.body.message).to.equal("Role created successfully!");
+          const fetchCall = fetchStub.getCall(0);
+          const requestBody = JSON.parse(fetchCall.args[1].body);
+          expect(requestBody.rolename).to.equal("group-developers");
+
+          return done();
+        });
+    });
+
+    it("should create a custom role without prefix when role=true", function (done) {
+      const roleData = {
+        rolename: "developers",
+        description: "Test custom role",
+      };
+
+      chai
+        .request(app)
+        .post("/discord-actions/groups?role=true")
+        .set("cookie", `${cookieName}=${testUserAuthToken}`)
+        .send(roleData)
+        .end((err, res) => {
+          if (err) {
+            return done(err);
+          }
+          expect(res).to.have.status(201);
+          expect(res.body).to.be.an("object");
+          expect(res.body.message).to.equal("Role created successfully!");
+          const fetchCall = fetchStub.getCall(0);
+          const requestBody = JSON.parse(fetchCall.args[1].body);
+          expect(requestBody.rolename).to.equal("developers");
+
+          return done();
+        });
+    });
+
+    it("should return 400 when role query param is not a boolean", function (done) {
+      const roleData = {
+        rolename: "developers",
+        description: "Test role",
+      };
+
+      chai
+        .request(app)
+        .post("/discord-actions/groups?role=invalid")
+        .set("cookie", `${cookieName}=${testUserAuthToken}`)
+        .send(roleData)
+        .end((err, res) => {
+          if (err) {
+            return done(err);
+          }
+          expect(res).to.have.status(400);
+          expect(res.body).to.be.an("object");
+          expect(res.body.error).to.equal("Bad Request");
+
+          return done();
+        });
+    });
+
+    it("should return 400 when role already exists", function (done) {
+      sinon.restore();
+      fetchStub = sinon.stub(global, "fetch");
+      fetchStub.returns(
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ id: "discord-role-id-123" }),
+        })
+      );
+
+      sinon.stub(discordRolesModel, "isGroupRoleExists").resolves({
+        roleExists: true,
+      });
+
+      const roleData = {
+        rolename: "developers",
+        description: "Test role",
+      };
+
+      chai
+        .request(app)
+        .post("/discord-actions/groups?role=true")
+        .set("cookie", `${cookieName}=${testUserAuthToken}`)
+        .send(roleData)
+        .end((err, res) => {
+          if (err) {
+            return done(err);
+          }
+          expect(res).to.have.status(400);
+          expect(res.body).to.be.an("object");
+          expect(res.body.message).to.equal("Role already exists!");
+
+          return done();
+        });
+    });
+
+    it("should handle string 'true' as true boolean value", function (done) {
+      const roleData = {
+        rolename: "testrole",
+        description: "Test role",
+      };
+
+      chai
+        .request(app)
+        .post("/discord-actions/groups?role=true")
+        .set("cookie", `${cookieName}=${testUserAuthToken}`)
+        .send(roleData)
+        .end((err, res) => {
+          if (err) {
+            return done(err);
+          }
+          expect(res).to.have.status(201);
+          const fetchCall = fetchStub.getCall(0);
+          const requestBody = JSON.parse(fetchCall.args[1].body);
+          expect(requestBody.rolename).to.equal("testrole");
+
+          return done();
+        });
+    });
+  });
 });

@@ -1,7 +1,7 @@
 export type ApplicationRole = "developer" | "designer" | "product_manager" | "project_manager" | "qa" | "social_media";
 
 export type SocialLink = {
-  phoneNo?: string;
+  phoneNumber?: string;
   github?: string;
   instagram?: string;
   linkedin?: string;
@@ -70,5 +70,20 @@ export type applicationPayload = {
   foundFrom: string;
   role: ApplicationRole;
   imageUrl?: string;
+  socialLink?: SocialLink;
+};
+
+export type applicationUpdatePayload = {
+  imageUrl?: string;
+  foundFrom?: string;
+  introduction?: string;
+  forFun?: string;
+  funFact?: string;
+  whyRds?: string;
+  numberOfHours?: number;
+  professional?: {
+    institution?: string;
+    skills?: string;
+  };
   socialLink?: SocialLink;
 };

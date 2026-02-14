@@ -8,6 +8,7 @@ const { createApplicationService } = require("../services/applicationService");
 const { Conflict } = require("http-errors");
 const logger = require("../utils/logger");
 const { APPLICATION_STATUS_TYPES } = require("../constants/application");
+const { buildApplicationUpdatePayload } = require("../utils/application");
 
 const getAllOrUserApplication = async (req: CustomRequest, res: CustomResponse): Promise<any> => {
   try {
@@ -105,26 +106,26 @@ const updateApplication = async (req: CustomRequest, res: CustomResponse) => {
   try {
     const { applicationId } = req.params;
     const rawBody = req.body;
+    const dataToUpdate = buildApplicationUpdatePayload(rawBody);
+    const userId = req.userData.id;
+    const username = req.userData.username;
 
-    const applicationLog = {
-      type: logType.APPLICATION_UPDATED,
-      meta: {
-        applicationId,
-        username: req.userData.username,
-        userId: req.userData.id,
-      },
-      body: rawBody,
-    };
+    const result = await ApplicationModel.updateApplication(dataToUpdate, applicationId, userId, username, rawBody);
 
-    const promises = [
-      ApplicationModel.updateApplication(rawBody, applicationId),
-      addLog(applicationLog.type, applicationLog.meta, applicationLog.body),
-    ];
-
-    await Promise.all(promises);
-    return res.json({
-      message: "Application updated successfully!",
-    });
+    switch (result.status) {
+      case APPLICATION_STATUS.notFound:
+        return res.boom.notFound(APPLICATION_ERROR_MESSAGES.APPLICATION_NOT_FOUND);
+      case APPLICATION_STATUS.unauthorized:
+        return res.boom.unauthorized(APPLICATION_ERROR_MESSAGES.APPLICATION_EDIT_UNAUTHORIZED);
+      case APPLICATION_STATUS.tooSoon:
+        return res.boom.conflict(APPLICATION_ERROR_MESSAGES.EDIT_TOO_SOON);
+      case APPLICATION_STATUS.success:
+        return res.json({
+          message: API_RESPONSE_MESSAGES.APPLICATION_UPDATED_SUCCESS,
+        });
+      default:
+        return res.boom.badImplementation(INTERNAL_SERVER_ERROR);
+    }
   } catch (err) {
     logger.error(`Error while updating the application: ${err}`);
     return res.boom.badImplementation(INTERNAL_SERVER_ERROR);

@@ -23,7 +23,8 @@ const DISCORD_BASE_URL = config.get("services.discordBot.baseUrl");
 
 const createGroupRole = async (req, res) => {
   try {
-    const rolename = `group-${req.body.rolename}`;
+    const { role = false } = req.query;
+    const rolename = role ? req.body.rolename : `group-${req.body.rolename}`;
 
     const { roleExists } = await discordRolesModel.isGroupRoleExists({ rolename });
 
@@ -505,6 +506,7 @@ const generateInviteForUser = async (req, res) => {
 
     const inviteOptions = {
       channelId: channelId,
+      role: req.approvedApplicationRole,
     };
     const response = await fetch(`${DISCORD_BASE_URL}/invite`, {
       method: "POST",

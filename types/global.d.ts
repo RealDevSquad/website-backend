@@ -42,4 +42,4 @@ export type userData = {
 };
 
 export type CustomResponse = Response & { boom: Boom };
-export type CustomRequest = Request & { userData };
+export type CustomRequest = Request & { userData; approvedApplicationRole?: string };

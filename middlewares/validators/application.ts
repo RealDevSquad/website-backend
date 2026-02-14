@@ -6,23 +6,23 @@ const { APPLICATION_STATUS_TYPES, APPLICATION_ROLES } = require("../../constants
 const { phoneNumberRegex } = require("../../constants/subscription-validator");
 const logger = require("../../utils/logger");
 
-const validateApplicationData = async (req: CustomRequest, res: CustomResponse, next: NextFunction) => {
-  if (req.body.socialLink?.phoneNo) {
-    req.body.socialLink.phoneNo = req.body.socialLink.phoneNo.trim();
-  }
+const socialLinkSchema = joi
+  .object({
+    phoneNumber: joi.string().optional().regex(phoneNumberRegex).message('"phoneNumber" must be in a valid format'),
+    github: joi.string().min(1).optional(),
+    instagram: joi.string().min(1).optional(),
+    linkedin: joi.string().min(1).optional(),
+    twitter: joi.string().min(1).optional(),
+    peerlist: joi.string().min(1).optional(),
+    behance: joi.string().min(1).optional(),
+    dribbble: joi.string().min(1).optional(),
+  })
+  .optional();
 
-  const socialLinkSchema = joi
-    .object({
-      phoneNo: joi.string().optional().regex(phoneNumberRegex).message('"phoneNo" must be in a valid format'),
-      github: joi.string().min(1).optional(),
-      instagram: joi.string().min(1).optional(),
-      linkedin: joi.string().min(1).optional(),
-      twitter: joi.string().min(1).optional(),
-      peerlist: joi.string().min(1).optional(),
-      behance: joi.string().min(1).optional(),
-      dribbble: joi.string().min(1).optional(),
-    })
-    .optional();
+const validateApplicationData = async (req: CustomRequest, res: CustomResponse, next: NextFunction) => {
+  if (req.body.socialLink?.phoneNumber) {
+    req.body.socialLink.phoneNumber = req.body.socialLink.phoneNumber.trim();
+  }
 
   const schema = joi
     .object()
@@ -65,11 +65,11 @@ const validateApplicationData = async (req: CustomRequest, res: CustomResponse, 
     next();
   } catch (error) {
     logger.error(`Error in validating application data: ${error}`);
-    res.boom.badRequest(error.details[0].message);
+    return res.boom.badRequest(error.details[0].message);
   }
 };
 
-const validateApplicationUpdateData = async (req: CustomRequest, res: CustomResponse, next: NextFunction) => {
+const validateApplicationFeedbackData = async (req: CustomRequest, res: CustomResponse, next: NextFunction) => {
   const schema = joi
   .object({
     status: joi
@@ -109,7 +109,56 @@ const validateApplicationUpdateData = async (req: CustomRequest, res: CustomResp
     next();
   } catch (error) {
     logger.error(`Error in validating recruiter data: ${error}`);
-    res.boom.badRequest(error.details[0].message);
+    return res.boom.badRequest(error.details[0].message);
+  }
+};
+
+const validateApplicationUpdateData = async (req: CustomRequest, res: CustomResponse, next: NextFunction) => {
+  if (req.body.socialLink?.phoneNumber) {
+    req.body.socialLink.phoneNumber = req.body.socialLink.phoneNumber.trim();
+  }
+
+  const professionalSchema = joi
+    .object({
+      institution: joi.string().min(1).optional(),
+      skills: joi.string().min(5).optional(),
+    })
+    .optional();
+
+  const schema = joi
+    .object()
+    .strict()
+    .min(1)
+    .keys({
+      imageUrl: joi.string().uri().optional(),
+      foundFrom: joi.string().min(1).optional(),
+      introduction: joi.string().min(1).optional(),
+      forFun: joi
+        .string()
+        .custom((value, helpers) => customWordCountValidator(value, helpers, 100))
+        .optional(),
+      funFact: joi
+        .string()
+        .custom((value, helpers) => customWordCountValidator(value, helpers, 100))
+        .optional(),
+      whyRds: joi
+        .string()
+        .custom((value, helpers) => customWordCountValidator(value, helpers, 100))
+        .optional(),
+      numberOfHours: joi.number().min(1).max(168).optional(),
+      professional: professionalSchema,
+      socialLink: socialLinkSchema,
+    })
+    .messages({
+      "object.min": "Update payload must contain at least one allowed field.",
+    });
+
+  try {
+    await schema.validateAsync(req.body);
+    next();
+  } catch (error) {
+    logger.error(`Error in validating application update data: ${error}`);
+    return res.boom.badRequest(error.details[0].message);
   }
 };
 
@@ -127,12 +176,13 @@ const validateApplicationQueryParam = async (req: CustomRequest, res: CustomResp
     next();
   } catch (error) {
     logger.error(`Error validating query params : ${error}`);
-    res.boom.badRequest(error.details[0].message);
+    return res.boom.badRequest(error.details[0].message);
   }
 };
 
 module.exports = {
   validateApplicationData,
+  validateApplicationFeedbackData,
   validateApplicationUpdateData,
   validateApplicationQueryParam,
 };

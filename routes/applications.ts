@@ -17,11 +17,12 @@ router.get(
 );
 router.get("/:applicationId", authenticate, authorizeRoles([SUPERUSER]), applications.getApplicationById);
 router.post("/", authenticate, applicationValidator.validateApplicationData, applications.addApplication);
+router.patch("/:applicationId", authenticate, applicationValidator.validateApplicationUpdateData, applications.updateApplication);
 router.patch(
   "/:applicationId/feedback",
   authenticate,
   authorizeRoles([SUPERUSER]),
-  applicationValidator.validateApplicationUpdateData,
+  applicationValidator.validateApplicationFeedbackData,
   applications.submitApplicationFeedback
 );
 router.patch("/:applicationId/nudge", authenticate, applications.nudgeApplication);

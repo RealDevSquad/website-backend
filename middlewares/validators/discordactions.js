@@ -1,14 +1,20 @@
 const Joi = require("joi");
 const { validateMillisecondsTimestamp } = require("./utils");
+const logger = require("../../utils/logger");
 
 const validateGroupRoleBody = async (req, res, next) => {
-  const schema = Joi.object({
+  const bodySchema = Joi.object({
     rolename: Joi.string().trim().required(),
     description: Joi.string().trim(),
   });
 
+  const querySchema = Joi.object({
+    role: Joi.boolean().default(false).optional(),
+  });
+
   try {
-    await schema.validateAsync(req.body);
+    await bodySchema.validateAsync(req.body);
+    req.query = await querySchema.validateAsync(req.query);
     next();
   } catch (error) {
     logger.error(`Error validating createGroupRole payload : ${error}`);
