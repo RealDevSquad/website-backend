@@ -12,7 +12,7 @@ const applicationModel = require("../../models/applications");
 
 const applicationsData = require("../fixtures/applications/applications")();
 const cookieName = config.get("userToken.cookieName");
-const { APPLICATION_ERROR_MESSAGES, API_RESPONSE_MESSAGES } = require("../../constants/application");
+const { APPLICATION_ERROR_MESSAGES, API_RESPONSE_MESSAGES, APPLICATION_SCORE } = require("../../constants/application");
 
 const appOwner = userData[3];
 const superUser = userData[4];
@@ -861,7 +861,7 @@ describe("Application", function () {
     let nudgeApplicationId: string;
 
     beforeEach(async function () {
-      const applicationData = { ...applicationsData[0], userId };
+      const applicationData = { ...applicationsData[0], userId, score: APPLICATION_SCORE.INITIAL_SCORE };
       nudgeApplicationId = await applicationModel.addApplication(applicationData);
     });
 
@@ -881,7 +881,7 @@ describe("Application", function () {
           expect(res.body.message).to.be.equal(API_RESPONSE_MESSAGES.NUDGE_SUCCESS);
           expect(res.body.nudgeCount).to.be.equal(1);
           expect(res.body.lastNudgeAt).to.be.a("string");
-          expect(res.body.score).to.be.equal(10);
+          expect(res.body.score).to.be.equal(APPLICATION_SCORE.INITIAL_SCORE + APPLICATION_SCORE.NUDGE_BONUS);
           done();
         });
     });
@@ -896,7 +896,7 @@ describe("Application", function () {
 
           expect(res).to.have.status(200);
           expect(res.body.nudgeCount).to.be.equal(1);
-          expect(res.body.score).to.be.equal(10);
+          expect(res.body.score).to.be.equal(APPLICATION_SCORE.INITIAL_SCORE + APPLICATION_SCORE.NUDGE_BONUS);
 
           const twentyFiveHoursAgo = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
           applicationModel
@@ -919,7 +919,7 @@ describe("Application", function () {
                   expect(res.body.message).to.be.equal(API_RESPONSE_MESSAGES.NUDGE_SUCCESS);
                   expect(res.body.nudgeCount).to.be.equal(2);
                   expect(res.body.lastNudgeAt).to.be.a("string");
-                  expect(res.body.score).to.be.equal(20);
+                  expect(res.body.score).to.be.equal(APPLICATION_SCORE.INITIAL_SCORE + 2 * APPLICATION_SCORE.NUDGE_BONUS);
                   done();
                 });
             })

@@ -21,6 +21,7 @@ module.exports = () => {
       },
       createdAt: null,
       role: "developer",
+      isNew: true,
     },
     {
       userId: "xyajkdfsfsd",
@@ -44,6 +45,7 @@ module.exports = () => {
       },
       createdAt: null,
       role: "developer",
+      isNew: true,
     },
     {
       college: "Groww",
@@ -68,6 +70,7 @@ module.exports = () => {
       status: "rejected",
       createdAt: null,
       role: "developer",
+      isNew: true,
     },
     {
       college: "Groww",
@@ -92,6 +95,7 @@ module.exports = () => {
       status: "rejected",
       createdAt: null,
       role: "developer",
+      isNew: true,
     },
     {
       college: "Groww",
@@ -116,6 +120,7 @@ module.exports = () => {
       status: "rejected",
       createdAt: null,
       role: "developer",
+      isNew: true,
     },
     {
       college: "Groww",

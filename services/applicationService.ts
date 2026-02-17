@@ -5,6 +5,7 @@ const {
   APPLICATION_STATUS_TYPES,
   APPLICATION_ERROR_MESSAGES,
   APPLICATION_REVIEW_CYCLE_START_DATE,
+  APPLICATION_SCORE,
 } = require("../constants/application");
 const logger = require("../utils/logger");
 
@@ -86,7 +87,7 @@ export const createApplicationService = async (
 
     const applicationData: application = {
       ...transformPayloadToApplication(payload, userId),
-      score: 50,
+      score: APPLICATION_SCORE.INITIAL_SCORE,
       status: APPLICATION_STATUS_TYPES.PENDING,
       createdAt,
       isNew: true,

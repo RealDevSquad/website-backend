@@ -48,6 +48,11 @@ const APPLICATION_STATUS = {
  * Business requirement: Applications created after this date are considered reviewed
  * and cannot be resubmitted. This date marks the start of the new application review cycle.
  */
+const APPLICATION_SCORE = {
+  INITIAL_SCORE: 50,
+  NUDGE_BONUS: 10,
+};
+
 const APPLICATION_REVIEW_CYCLE_START_DATE = new Date("2026-01-01T00:00:00.000Z");
 
 module.exports = {
@@ -57,5 +62,6 @@ module.exports = {
   APPLICATION_ERROR_MESSAGES,
   APPLICATION_LOG_MESSAGES,
   APPLICATION_REVIEW_CYCLE_START_DATE,
-  APPLICATION_STATUS
+  APPLICATION_STATUS,
+  APPLICATION_SCORE
 };

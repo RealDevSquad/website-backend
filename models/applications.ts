@@ -4,7 +4,7 @@ const { logType } = require("../constants/logs");
 const firestore = require("../utils/firestore");
 const logger = require("../utils/logger");
 const ApplicationsModel = firestore.collection("applicants");
-const { APPLICATION_STATUS_TYPES, APPLICATION_STATUS } = require("../constants/application");
+const { APPLICATION_STATUS_TYPES, APPLICATION_STATUS, APPLICATION_SCORE } = require("../constants/application");
 const { convertDaysToMilliseconds } = require("../utils/time");
 
 const getAllApplications = async (limit: number, lastDocId?: string) => {
@@ -16,7 +16,7 @@ const getAllApplications = async (limit: number, lastDocId?: string) => {
       lastDoc = await ApplicationsModel.doc(lastDocId).get();
     }
 
-    let dbQuery = ApplicationsModel.orderBy("createdAt", "desc");
+    let dbQuery = ApplicationsModel.where("isNew", "==", true).orderBy("createdAt", "desc");
 
     if (lastDoc) {
       dbQuery = dbQuery.startAfter(lastDoc);
@@ -59,7 +59,7 @@ const getApplicationsBasedOnStatus = async (status: string, limit: number, lastD
   try {
     let lastDoc = null;
     const applications = [];
-    let dbQuery = ApplicationsModel.where("status", "==", status);
+    let dbQuery = ApplicationsModel.where("isNew", "==", true).where("status", "==", status);
 
     if (userId) {
       dbQuery = dbQuery.where("userId", "==", userId);
@@ -86,7 +86,7 @@ const getApplicationsBasedOnStatus = async (status: string, limit: number, lastD
       });
     });
 
-    let countQuery = ApplicationsModel.where("status", "==", status);
+    let countQuery = ApplicationsModel.where("isNew", "==", true).where("status", "==", status);
 
     const totalApplications = await countQuery.get();
     const totalCount = totalApplications.size;
@@ -219,7 +219,7 @@ const nudgeApplication = async ({ applicationId, userId }: { applicationId: stri
     const currentNudgeCount = application.nudgeCount || 0;
     const updatedNudgeCount = currentNudgeCount + 1;
     const newLastNudgeAt = new Date(currentTime).toISOString();
-    const updatedScore = (application.score || 0) + 10;
+    const updatedScore = (application.score || 0) + APPLICATION_SCORE.NUDGE_BONUS;
 
     transaction.update(applicationRef, {
       nudgeCount: updatedNudgeCount,
