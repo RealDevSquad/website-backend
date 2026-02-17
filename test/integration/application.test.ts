@@ -546,21 +546,18 @@ describe("Application", function () {
       expect(res.body.message).to.be.equal("Application updated successfully");
     });
 
-    it("should return 400 when updating role with an invalid role", function (done) {
-      applicationModel.addApplication({ ...applicationsData[0], userId }).then((testApplicationId: string) => {
-        chai
-          .request(app)
-          .patch(`/applications/${testApplicationId}`)
-          .set("cookie", `${cookieName}=${jwt}`)
-          .send({ role: "invalid_role" })
-          .end((err, res) => {
-            if (err) return done(err);
+    it("should return 400 when updating role with an invalid role", async function () {
+      const applicationData = { ...applicationsData[0], userId };
+      const testApplicationId = await applicationModel.addApplication(applicationData);
 
-            expect(res).to.have.status(400);
-            expect(res.body.error).to.be.equal("Bad Request");
-            return done();
-          });
-      });
+      const res = await chai
+        .request(app)
+        .patch(`/applications/${testApplicationId}`)
+        .set("cookie", `${cookieName}=${jwt}`)
+        .send({ role: "invalid_role" });
+
+      expect(res).to.have.status(400);
+      expect(res.body.error).to.be.equal("Bad Request");
     });
   });
 
