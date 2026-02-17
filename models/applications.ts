@@ -219,16 +219,19 @@ const nudgeApplication = async ({ applicationId, userId }: { applicationId: stri
     const currentNudgeCount = application.nudgeCount || 0;
     const updatedNudgeCount = currentNudgeCount + 1;
     const newLastNudgeAt = new Date(currentTime).toISOString();
+    const updatedScore = (application.score || 0) + 10;
 
     transaction.update(applicationRef, {
       nudgeCount: updatedNudgeCount,
       lastNudgeAt: newLastNudgeAt,
+      score: updatedScore,
     });
 
     return {
       status: APPLICATION_STATUS.success,
       nudgeCount: updatedNudgeCount,
       lastNudgeAt: newLastNudgeAt,
+      score: updatedScore,
     };
   });
 

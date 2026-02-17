@@ -86,7 +86,7 @@ export const createApplicationService = async (
 
     const applicationData: application = {
       ...transformPayloadToApplication(payload, userId),
-      score: 0,
+      score: 50,
       status: APPLICATION_STATUS_TYPES.PENDING,
       createdAt,
       isNew: true,

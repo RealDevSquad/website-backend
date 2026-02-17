@@ -140,7 +140,7 @@ describe("createApplicationService", () => {
 
       const applicationData = addApplicationStub.getCall(0).args[0];
       expect(applicationData.isNew).to.equal(true);
-      expect(applicationData.score).to.equal(0);
+      expect(applicationData.score).to.equal(50);
       expect(applicationData.status).to.equal(APPLICATION_STATUS_TYPES.PENDING);
       expect(applicationData.nudgeCount).to.equal(0);
     });

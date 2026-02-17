@@ -202,6 +202,7 @@ const nudgeApplication = async (req: CustomRequest, res: CustomResponse) => {
           message: API_RESPONSE_MESSAGES.NUDGE_SUCCESS,
           nudgeCount: result.nudgeCount,
           lastNudgeAt: result.lastNudgeAt,
+          score: result.score,
         });
       default:
         return res.boom.badImplementation(INTERNAL_SERVER_ERROR);
