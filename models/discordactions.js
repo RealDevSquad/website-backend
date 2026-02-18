@@ -404,8 +404,7 @@ const updateIdleUsersOnDiscord = async (dev) => {
   let allUsersHavingGroupIdle = [];
   let groupIdleRole;
   let groupIdleRoleId;
-
-  allMavens.length = 0;
+  let allMavens = [];
 
   try {
     groupIdleRole = await getGroupRole("group-idle");
