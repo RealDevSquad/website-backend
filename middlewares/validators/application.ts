@@ -130,8 +130,6 @@ const validateApplicationUpdateData = async (req: CustomRequest, res: CustomResp
     .strict()
     .min(1)
     .keys({
-      firstName: joi.string().min(1).optional(),
-      lastName: joi.string().min(1).optional(),
       college: joi.string().min(1).optional(),
       skills: joi.string().min(5).optional(),
       city: joi.string().min(1).optional(),

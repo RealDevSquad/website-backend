@@ -74,8 +74,6 @@ export type applicationPayload = {
 };
 
 export type applicationUpdatePayload = {
-  firstName?: string;
-  lastName?: string;
   city?: string;
   state?: string;
   country?: string;

@@ -31,8 +31,6 @@ const getUserApplicationObject = (rawData: applicationPayload, userId: string, c
 };
 
 const FLAT_FIELD_MAP: Record<keyof Omit<applicationUpdatePayload, "professional" | "socialLink">, string> = {
-  firstName: "biodata.firstName",
-  lastName: "biodata.lastName",
   city: "location.city",
   state: "location.state",
   country: "location.country",

@@ -504,20 +504,6 @@ describe("Application", function () {
       expect(secondRes.body.message).to.be.equal(APPLICATION_ERROR_MESSAGES.EDIT_TOO_SOON);
     });
 
-    it("should return 200 when updating firstName and lastName", async function () {
-      const applicationData = { ...applicationsData[0], userId };
-      const testApplicationId = await applicationModel.addApplication(applicationData);
-
-      const res = await chai
-        .request(app)
-        .patch(`/applications/${testApplicationId}`)
-        .set("cookie", `${cookieName}=${jwt}`)
-        .send({ firstName: "UpdatedFirst", lastName: "UpdatedLast" });
-
-      expect(res).to.have.status(200);
-      expect(res.body.message).to.be.equal("Application updated successfully");
-    });
-
     it("should return 200 when updating city, state, and country", async function () {
       const applicationData = { ...applicationsData[0], userId };
       const testApplicationId = await applicationModel.addApplication(applicationData);
