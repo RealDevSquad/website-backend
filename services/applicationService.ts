@@ -32,7 +32,7 @@ const transformPayloadToApplication = (payload: applicationPayload, userId: stri
       country: payload.country,
     },
     professional: {
-      institution: payload.college,
+      institution: payload.institution,
       skills: payload.skills,
     },
     intro: {

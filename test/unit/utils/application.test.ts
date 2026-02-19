@@ -10,7 +10,7 @@ describe("getUserApplicationObject", async function () {
       city: "Kanpur",
       state: "UP",
       country: "India",
-      college: "Christ Church College",
+      institution: "Christ Church College",
       skills: "React, NodeJs, Ember",
       introduction: "not needed",
       funFact: "kdfkasdjfkdk",
@@ -33,7 +33,7 @@ describe("getUserApplicationObject", async function () {
         country: rawData.country,
       },
       professional: {
-        institution: rawData.college,
+        institution: rawData.institution,
         skills: rawData.skills,
       },
       intro: {

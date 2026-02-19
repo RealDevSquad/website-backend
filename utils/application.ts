@@ -13,7 +13,7 @@ const getUserApplicationObject = (rawData: applicationPayload, userId: string, c
       country: rawData.country,
     },
     professional: {
-      institution: rawData.college,
+      institution: rawData.institution,
       skills: rawData.skills,
     },
     intro: {
@@ -34,7 +34,7 @@ const FLAT_FIELD_MAP: Record<keyof Omit<applicationUpdatePayload, "professional"
   city: "location.city",
   state: "location.state",
   country: "location.country",
-  college: "professional.institution",
+  institution: "professional.institution",
   skills: "professional.skills",
   role: "role",
   imageUrl: "imageUrl",
