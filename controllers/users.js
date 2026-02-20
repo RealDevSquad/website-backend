@@ -561,6 +561,30 @@ const updateSelf = async (req, res, next) => {
   }
 };
 
+const handleUserPictureUpload = async (req, res) => {
+  if (req.body.type === "application") {
+    return postApplicationUserPicture(req, res);
+  }
+  return postUserPicture(req, res);
+};
+
+const postApplicationUserPicture = async (req, res) => {
+  const { file } = req;
+  const { id: userId } = req.userData;
+  const { coordinates } = req.body;
+  try {
+    const coordinatesObject = coordinates && JSON.parse(coordinates);
+    const imageData = await imageService.uploadProfilePicture({ file, userId, coordinates: coordinatesObject });
+    return res.status(201).json({
+      message: "Application picture uploaded successfully!",
+      image: imageData,
+    });
+  } catch (error) {
+    logger.error(`Error while uploading application picture: ${error}`);
+    return res.boom.badImplementation(INTERNAL_SERVER_ERROR);
+  }
+};
+
 /**
  * Post user profile picture
  *
@@ -1186,4 +1210,5 @@ module.exports = {
   getIdentityStats,
   updateUsernames,
   updateProfile,
+  handleUserPictureUpload,
 };

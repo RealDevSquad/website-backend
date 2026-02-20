@@ -15,6 +15,7 @@ const authenticateProfile = require("../middlewares/authenticateProfile");
 const { devFlagMiddleware } = require("../middlewares/devFlag");
 const { userAuthorization } = require("../middlewares/userAuthorization");
 const conditionalMiddleware = require("../middlewares/conditionalMiddleware");
+const skipWhenApplicationType = require("../middlewares/pictureRouteMiddleware");
 
 router.post("/", authorizeAndAuthenticate([ROLES.SUPERUSER], [Services.CRON_JOB_HANDLER]), users.markUnverified);
 router.post("/update-in-discord", authenticate, authorizeRoles([SUPERUSER]), users.setInDiscordScript);
@@ -65,7 +66,13 @@ router.patch(
 );
 
 // upload.single('profile') -> multer inmemory storage of file for type multipart/form-data
-router.post("/picture", authenticate, checkIsVerifiedDiscord, upload.single("profile"), users.postUserPicture);
+router.post(
+  "/picture",
+  authenticate,
+  upload.single("profile"),
+  skipWhenApplicationType(checkIsVerifiedDiscord),
+  users.handleUserPictureUpload
+);
 router.patch(
   "/picture/verify/:id",
   authenticate,

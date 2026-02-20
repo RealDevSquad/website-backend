@@ -13,6 +13,8 @@ const applicationModel = require("../../models/applications");
 const applicationsData = require("../fixtures/applications/applications")();
 const cookieName = config.get("userToken.cookieName");
 const { APPLICATION_ERROR_MESSAGES, API_RESPONSE_MESSAGES, APPLICATION_SCORE } = require("../../constants/application");
+const imageService = require("../../services/imageService");
+const { Buffer } = require("node:buffer");
 
 const appOwner = userData[3];
 const superUser = userData[4];
@@ -994,6 +996,46 @@ describe("Application", function () {
             done();
           });
       });
+    });
+  });
+
+  describe("POST /users/picture (application type)", function () {
+    it("should return 201 when uploading with type=application and valid file", function (done) {
+      const mockImageResponse = { publicId: "profile/test-id/image", url: "https://res.cloudinary.com/example/image.png" };
+      const uploadStub = sinon.stub(imageService, "uploadProfilePicture").resolves(mockImageResponse);
+      chai
+        .request(app)
+        .post("/users/picture")
+        .type("form")
+        .set("cookie", `${cookieName}=${jwt}`)
+        .attach("profile", Buffer.from("fake-image-data", "utf-8"), "image.png")
+        .field("type", "application")
+        .end((err, res) => {
+          uploadStub.restore();
+          if (err) return done(err);
+          expect(res).to.have.status(201);
+          expect(res.body.message).to.equal("Application picture uploaded successfully!");
+          expect(res.body.image).to.deep.equal(mockImageResponse);
+          return done();
+        });
+    });
+
+    it("should return 500 when upload fails", function (done) {
+      const uploadStub = sinon.stub(imageService, "uploadProfilePicture").rejects(new Error("Upload failed"));
+      chai
+        .request(app)
+        .post("/users/picture")
+        .type("form")
+        .set("cookie", `${cookieName}=${jwt}`)
+        .attach("profile", Buffer.from("fake-image-data", "utf-8"), "image.png")
+        .field("type", "application")
+        .end((err, res) => {
+          uploadStub.restore();
+          if (err) return done(err);
+          expect(res).to.have.status(500);
+          expect(res.body.error).to.equal("Internal Server Error");
+          return done();
+        });
     });
   });
 });
