@@ -1173,6 +1173,29 @@ describe("Discord actions", function () {
     });
   });
 
+  describe("POST /discord-actions/invite (application-scoped)", function () {
+    it("should return 409 when invite already exists for the same application", async function () {
+      sinon
+        .stub(ApplicationModel, "getUserApplications")
+        .resolves([{ id: "app-1", status: "accepted", role: "developer", isNew: true }]);
+      sinon.stub(discordRolesModel, "getUserDiscordInviteByApplication").resolves({
+        notFound: false,
+        id: "invite-doc-id",
+        userId,
+        applicationId: "app-1",
+        inviteLink: "discord.gg/existing",
+      });
+
+      const res = await chai
+        .request(app)
+        .post("/discord-actions/invite")
+        .set("cookie", `${cookieName}=${userAuthToken}`);
+
+      expect(res).to.have.status(409);
+      expect(res.body.message).to.be.equal("User invite is already present!");
+    });
+  });
+
   describe("PUT /discord-actions/group-idle", function () {
     let allIds;
 

@@ -33,6 +33,7 @@ const {
   getMissedProgressUpdatesUsers,
   addInviteToInviteModel,
   getUserDiscordInvite,
+  getUserDiscordInviteByApplication,
   groupUpdateLastJoinDate,
   updateIdleUsersOnDiscord,
   updateIdle7dUsersOnDiscord,
@@ -887,6 +888,55 @@ describe("discordactions", function () {
 
     it("should return notFound true, if the invite for user doesn't exist", async function () {
       const invite = await getUserDiscordInvite("kfjkasdafdfdsfl");
+      expect(invite.notFound).to.be.equal(true);
+    });
+
+    it("should return latest invite by createdAt when user has multiple invite docs", async function () {
+      const userId = "user-multi-invite";
+      await addInviteToInviteModel({
+        userId,
+        inviteLink: "discord.gg/old",
+        applicationId: "app1",
+        createdAt: "2025-01-01T00:00:00.000Z",
+      });
+      await addInviteToInviteModel({
+        userId,
+        inviteLink: "discord.gg/new",
+        applicationId: "app2",
+        createdAt: "2025-02-01T00:00:00.000Z",
+      });
+      const invite = await getUserDiscordInvite(userId);
+      expect(invite.notFound).to.be.equal(false);
+      expect(invite.inviteLink).to.be.equal("discord.gg/new");
+    });
+  });
+
+  describe("getUserDiscordInviteByApplication", function () {
+    it("should return invite when userId and applicationId match an existing doc", async function () {
+      const userId = "user-app-invite";
+      const applicationId = "app-123";
+      await addInviteToInviteModel({
+        userId,
+        inviteLink: "discord.gg/abc",
+        applicationId,
+        createdAt: new Date().toISOString(),
+      });
+      const invite = await getUserDiscordInviteByApplication(userId, applicationId);
+      expect(invite.notFound).to.be.equal(false);
+      expect(invite.userId).to.be.equal(userId);
+      expect(invite.applicationId).to.be.equal(applicationId);
+      expect(invite.inviteLink).to.be.equal("discord.gg/abc");
+    });
+
+    it("should return notFound when no invite exists for that applicationId", async function () {
+      const invite = await getUserDiscordInviteByApplication("nonexistent-user", "app-456");
+      expect(invite.notFound).to.be.equal(true);
+    });
+
+    it("should return notFound for applicationId when only legacy doc without applicationId exists", async function () {
+      const userId = "user-legacy-only";
+      await addInviteToInviteModel({ userId, inviteLink: "discord.gg/legacy" });
+      const invite = await getUserDiscordInviteByApplication(userId, "new-app-id");
       expect(invite.notFound).to.be.equal(true);
     });
   });
