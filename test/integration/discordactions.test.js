@@ -1174,6 +1174,29 @@ describe("Discord actions", function () {
   });
 
   describe("POST /discord-actions/invite (application-scoped)", function () {
+    it("should create invite and return 201 for an eligible non-super user", async function () {
+      sinon
+        .stub(ApplicationModel, "getUserApplications")
+        .resolves([{ id: "app-1", status: "accepted", role: "developer", isNew: true }]);
+      sinon.stub(discordRolesModel, "getUserDiscordInviteByApplication").resolves({ notFound: true });
+      sinon.stub(discordRolesModel, "addInviteToInviteModel").resolves("invite-doc-id");
+      fetchStub.returns(
+        Promise.resolve({
+          status: 201,
+          json: () => Promise.resolve({ data: { code: "new-code" } }),
+        })
+      );
+
+      const res = await chai
+        .request(app)
+        .post("/discord-actions/invite")
+        .set("cookie", `${cookieName}=${userAuthToken}`);
+
+      expect(res).to.have.status(201);
+      expect(res.body.message).to.be.equal("invite generated successfully");
+      expect(res.body.inviteLink).to.be.equal("discord.gg/new-code");
+    });
+
     it("should return 409 when invite already exists for the same application", async function () {
       sinon
         .stub(ApplicationModel, "getUserApplications")
@@ -1193,6 +1216,36 @@ describe("Discord actions", function () {
 
       expect(res).to.have.status(409);
       expect(res.body.message).to.be.equal("User invite is already present!");
+    });
+
+    it("should return 403 for super user when application data is not provided", async function () {
+      const res = await chai
+        .request(app)
+        .post("/discord-actions/invite")
+        .set("cookie", `${cookieName}=${superUserAuthToken}`);
+
+      expect(res).to.have.status(403);
+      expect(res.body.message).to.be.equal("Application data is required to generate an invite.");
+    });
+
+    it("should allow super user to create invite when application data is provided", async function () {
+      sinon.stub(discordRolesModel, "getUserDiscordInviteByApplication").resolves({ notFound: true });
+      sinon.stub(discordRolesModel, "addInviteToInviteModel").resolves("invite-doc-id");
+      fetchStub.returns(
+        Promise.resolve({
+          status: 201,
+          json: () => Promise.resolve({ data: { code: "super-code" } }),
+        })
+      );
+
+      const res = await chai
+        .request(app)
+        .post("/discord-actions/invite?applicationId=app-super-1&role=developer")
+        .set("cookie", `${cookieName}=${superUserAuthToken}`);
+
+      expect(res).to.have.status(201);
+      expect(res.body.message).to.be.equal("invite generated successfully");
+      expect(res.body.inviteLink).to.be.equal("discord.gg/super-code");
     });
   });
 

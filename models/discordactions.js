@@ -1255,7 +1255,7 @@ const getUserDiscordInvite = async (userId) => {
       return { notFound: true };
     }
   } catch (err) {
-    logger.log("error in getting user invite", err);
+    logger.error("error in getting user invite", err);
     throw err;
   }
 };
@@ -1277,7 +1277,7 @@ const getUserDiscordInviteByApplication = async (userId, applicationId) => {
     }
     return { notFound: true };
   } catch (err) {
-    logger.log("error in getting user invite by application", err);
+    logger.error("error in getting user invite by application", err);
     throw err;
   }
 };

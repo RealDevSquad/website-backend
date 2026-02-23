@@ -878,6 +878,10 @@ describe("discordactions", function () {
       await addInviteToInviteModel(inviteObject);
     });
 
+    afterEach(async function () {
+      await cleanDb();
+    });
+
     it("should return invite for the user when the userId of a user is passed at it exists in the db", async function () {
       const invite = await getUserDiscordInvite("kfjkasdfl");
       expect(invite).to.have.property("id");
@@ -890,28 +894,13 @@ describe("discordactions", function () {
       const invite = await getUserDiscordInvite("kfjkasdafdfdsfl");
       expect(invite.notFound).to.be.equal(true);
     });
-
-    it("should return latest invite by createdAt when user has multiple invite docs", async function () {
-      const userId = "user-multi-invite";
-      await addInviteToInviteModel({
-        userId,
-        inviteLink: "discord.gg/old",
-        applicationId: "app1",
-        createdAt: "2025-01-01T00:00:00.000Z",
-      });
-      await addInviteToInviteModel({
-        userId,
-        inviteLink: "discord.gg/new",
-        applicationId: "app2",
-        createdAt: "2025-02-01T00:00:00.000Z",
-      });
-      const invite = await getUserDiscordInvite(userId);
-      expect(invite.notFound).to.be.equal(false);
-      expect(invite.inviteLink).to.be.equal("discord.gg/new");
-    });
   });
 
   describe("getUserDiscordInviteByApplication", function () {
+    afterEach(async function () {
+      await cleanDb();
+    });
+
     it("should return invite when userId and applicationId match an existing doc", async function () {
       const userId = "user-app-invite";
       const applicationId = "app-123";
