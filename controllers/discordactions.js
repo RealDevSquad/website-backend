@@ -488,9 +488,15 @@ const setRoleToUsersWith31DaysPlusOnboarding = async (req, res) => {
 const generateInviteForUser = async (req, res) => {
   try {
     const { userId } = req.query;
+    const isSuperUser = req.userData.roles.super_user;
+
+    const applicationId = req.approvedApplicationId || (isSuperUser ? req.query.applicationId : undefined);
+    const role = req.approvedApplicationRole || (isSuperUser ? req.query.role : undefined);
+
+    if (!applicationId || !role) return res.boom.forbidden("Application data is required to generate an invite.");
     const userIdForInvite = userId || req.userData.id;
 
-    const modelResponse = await discordRolesModel.getUserDiscordInvite(userIdForInvite);
+    const modelResponse = await discordRolesModel.getUserDiscordInviteByApplication(userIdForInvite, applicationId);
 
     if (!modelResponse.notFound) {
       return res.status(409).json({
@@ -506,7 +512,7 @@ const generateInviteForUser = async (req, res) => {
 
     const inviteOptions = {
       channelId: channelId,
-      role: req.approvedApplicationRole,
+      role,
     };
     const response = await fetch(`${DISCORD_BASE_URL}/invite`, {
       method: "POST",
@@ -518,7 +524,11 @@ const generateInviteForUser = async (req, res) => {
     const inviteCode = discordInviteResponse.data.code;
     const inviteLink = `discord.gg/${inviteCode}`;
 
-    await discordRolesModel.addInviteToInviteModel({ userId: userIdForInvite, inviteLink });
+    await discordRolesModel.addInviteToInviteModel({
+      userId: userIdForInvite,
+      inviteLink,
+      applicationId,
+    });
 
     return res.status(201).json({
       message: "invite generated successfully",

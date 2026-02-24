@@ -1255,13 +1255,31 @@ const getUserDiscordInvite = async (userId) => {
       return { notFound: true };
     }
   } catch (err) {
-    logger.log("error in getting user invite", err);
+    logger.error("error in getting user invite", err);
     throw err;
   }
 };
 const groupUpdateLastJoinDate = async ({ id }) => {
   await discordRoleModel.doc(id).set({ lastUsedOn: admin.firestore.Timestamp.fromDate(new Date()) }, { merge: true });
   return { updated: true };
+};
+
+const getUserDiscordInviteByApplication = async (userId, applicationId) => {
+  try {
+    const invite = await discordInvitesModel
+      .where("userId", "==", userId)
+      .where("applicationId", "==", applicationId)
+      .limit(1)
+      .get();
+    const [inviteDoc] = invite.docs;
+    if (inviteDoc) {
+      return { id: inviteDoc.id, ...inviteDoc.data(), notFound: false };
+    }
+    return { notFound: true };
+  } catch (err) {
+    logger.error("error in getting user invite by application", err);
+    throw err;
+  }
 };
 
 module.exports = {
@@ -1288,4 +1306,5 @@ module.exports = {
   groupUpdateLastJoinDate,
   deleteGroupRole,
   skipOnboardingUsersHavingApprovedExtensionRequest,
+  getUserDiscordInviteByApplication,
 };
