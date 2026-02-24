@@ -37,15 +37,7 @@ router.post("/groups", authenticate, checkIsVerifiedDiscord, validateGroupRoleBo
 router.get("/groups", authenticate, checkIsVerifiedDiscord, validateLazyLoadingParams, getPaginatedAllGroupRoles);
 router.delete("/groups/:groupId", authenticate, checkIsVerifiedDiscord, authorizeRoles([SUPERUSER]), deleteGroupRole);
 router.post("/roles", authenticate, checkIsVerifiedDiscord, validateMemberRoleBody, addGroupRoleToMember);
-/**
- * Short-circuit the GET method for this endpoint
- * Refer https://github.com/Real-Dev-Squad/todo-action-items/issues/269 for more details.
- */
 router.get("/invite", authenticate, getUserDiscordInvite);
-/**
- * Short-circuit this POST method for this endpoint
- * Refer https://github.com/Real-Dev-Squad/todo-action-items/issues/269 for more details.
- */
 router.post("/invite", authenticate, checkCanGenerateDiscordLink, generateInviteForUser);
 
 router.delete("/roles", authenticate, checkIsVerifiedDiscord, deleteRole);
