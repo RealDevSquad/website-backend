@@ -31,7 +31,6 @@ const ROLES = require("../constants/roles");
 const { Services } = require("../constants/bot");
 const { verifyCronJob } = require("../middlewares/authorizeBot");
 const { authorizeAndAuthenticate } = require("../middlewares/authorizeUsersAndService");
-const { disableRoute } = require("../middlewares/shortCircuit");
 const router = express.Router();
 
 router.post("/groups", authenticate, checkIsVerifiedDiscord, validateGroupRoleBody, createGroupRole);
@@ -42,7 +41,7 @@ router.post("/roles", authenticate, checkIsVerifiedDiscord, validateMemberRoleBo
  * Short-circuit the GET method for this endpoint
  * Refer https://github.com/Real-Dev-Squad/todo-action-items/issues/269 for more details.
  */
-router.get("/invite", disableRoute, authenticate, getUserDiscordInvite);
+router.get("/invite", authenticate, getUserDiscordInvite);
 /**
  * Short-circuit this POST method for this endpoint
  * Refer https://github.com/Real-Dev-Squad/todo-action-items/issues/269 for more details.
