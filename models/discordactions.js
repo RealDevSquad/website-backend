@@ -8,7 +8,7 @@ const { findSubscribedGroupIds } = require("../utils/helper");
 const { retrieveUsers } = require("../services/dataAccessLayer");
 const { BATCH_SIZE_IN_CLAUSE } = require("../constants/firebase");
 const { getAllUserStatus, getGroupRole, getUserStatus } = require("./userStatus");
-const { normalizeTimestamp, checkIfUserHasLiveTasks } = require("../utils/userStatus");
+const { normalizeTimestamp, checkIfUserHasLiveTasks, computeIdleDaysExcludingOOO } = require("../utils/userStatus");
 const { userState, POST_OOO_GRACE_PERIOD_IN_DAYS } = require("../constants/userStatus");
 const config = require("config");
 const logger = require("../utils/logger");
@@ -680,26 +680,32 @@ const updateIdle7dUsersOnDiscord = async (dev) => {
     });
 
     if (allUserStatus) {
+      const nowMs = Date.now();
       await Promise.all(
         allUserStatus.map(async (userStatus) => {
-          const currentDate = new Date();
-          const lastDate = new Date(userStatus.currentStatus.from);
-          const ONE_DAY = 1000 * 60 * 60 * 24;
-          const timeDifference = currentDate.setUTCHours(0, 0, 0, 0) - lastDate.setUTCHours(0, 0, 0, 0);
-          const daysDifference = Math.floor(timeDifference / ONE_DAY);
           try {
-            if (daysDifference > 7) {
-              const userData = await userModel.doc(userStatus.userId).get();
-              const isUserArchived = userData.data().roles.archived;
-              if (userData.exists) {
-                if (isUserArchived) {
-                  totalArchivedUsers++;
-                } else if (dev === "true" && !allMavens.includes(userData.data().discordId)) {
-                  const shouldAdd = await shouldAddIdleUser(userStatus, tasksModel);
-                  if (shouldAdd) {
-                    userStatus.userid = userData.data().discordId;
-                    allIdle7dUsers.push(userStatus);
-                  }
+            const fullStatusDoc = await userStatusModel.doc(userStatus.id).get();
+            const fullData = fullStatusDoc.exists ? fullStatusDoc.data() : {};
+            const idleDays = computeIdleDaysExcludingOOO(
+              fullData.idleWindowStartedAt,
+              fullData.lastOooFrom,
+              fullData.lastOooUntil,
+              userStatus.currentStatus?.from,
+              nowMs
+            );
+            if (idleDays <= 7) {
+              return;
+            }
+            const userData = await userModel.doc(userStatus.userId).get();
+            const isUserArchived = userData.data()?.roles?.archived;
+            if (userData.exists) {
+              if (isUserArchived) {
+                totalArchivedUsers++;
+              } else if (dev === "true" && !allMavens.includes(userData.data().discordId)) {
+                const shouldAdd = await shouldAddIdleUser(userStatus, tasksModel);
+                if (shouldAdd) {
+                  userStatus.userid = userData.data().discordId;
+                  allIdle7dUsers.push(userStatus);
                 }
               }
             }
