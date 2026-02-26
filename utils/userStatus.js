@@ -60,6 +60,37 @@ const resolveLastOooUntil = ({ previousState, previousUntil, nextState, fallback
   return undefined;
 };
 
+const ONE_DAY_MS = 1000 * 60 * 60 * 24;
+
+/**
+ * Computes total idle days in the window [windowStart, now], excluding the last OOO period.
+ * Used for group-idle-7d+ so that OOO days are not counted toward the 7-day idle threshold.
+ *
+ * @param {number|string|admin.firestore.Timestamp|null|undefined} idleWindowStartedAt - When idle window started (e.g. task completed).
+ * @param {number|string|admin.firestore.Timestamp|null|undefined} lastOooFrom - Start of last OOO period.
+ * @param {number|string|admin.firestore.Timestamp|null|undefined} lastOooUntil - End of last OOO period.
+ * @param {number|string|admin.firestore.Timestamp|null|undefined} currentStatusFrom - Fallback window start (e.g. currentStatus.from).
+ * @param {number} nowMs - Reference "now" in milliseconds.
+ * @returns {number} Total idle days (excluding OOO) in the window.
+ */
+const computeIdleDaysExcludingOOO = (idleWindowStartedAt, lastOooFrom, lastOooUntil, currentStatusFrom, nowMs) => {
+  const windowStart = normalizeTimestamp(idleWindowStartedAt) ?? normalizeTimestamp(currentStatusFrom) ?? nowMs;
+  const windowEnd = nowMs;
+  let totalMs = Math.max(0, windowEnd - windowStart);
+
+  const oooFrom = normalizeTimestamp(lastOooFrom);
+  const oooUntil = normalizeTimestamp(lastOooUntil);
+  if (oooFrom != null && oooUntil != null && oooFrom < oooUntil) {
+    const overlapStart = Math.max(windowStart, oooFrom);
+    const overlapEnd = Math.min(windowEnd, oooUntil);
+    if (overlapStart < overlapEnd) {
+      totalMs -= overlapEnd - overlapStart;
+    }
+  }
+
+  return Math.floor(totalMs / ONE_DAY_MS);
+};
+
 /* returns the User Id based on the route path
  *  @param req {Object} : Express request object
  *  @returns userId {Number | undefined} : the user id incase it exists
@@ -441,4 +472,5 @@ module.exports = {
   convertTimestampsToUTC,
   normalizeTimestamp,
   resolveLastOooUntil,
+  computeIdleDaysExcludingOOO,
 };

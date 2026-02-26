@@ -1,6 +1,11 @@
 const chai = require("chai");
 const { expect } = chai;
-const { generateNewStatus, checkIfUserHasLiveTasks, convertTimestampsToUTC } = require("../../../utils/userStatus");
+const {
+  generateNewStatus,
+  checkIfUserHasLiveTasks,
+  convertTimestampsToUTC,
+  computeIdleDaysExcludingOOO,
+} = require("../../../utils/userStatus");
 const { userState } = require("../../../constants/userStatus");
 const {
   OutputFixtureForFnConvertTimestampsToUTC,
@@ -100,6 +105,39 @@ describe("User Status Functions", function () {
     it("should convert timestamps within the input object to UTC 00:00:00 (start of day) and UTC 23:59:59 (end of day)", function () {
       const result = convertTimestampsToUTC(inputFixtureForFnConvertTimestampsToUTC);
       expect(result).to.deep.equal(OutputFixtureForFnConvertTimestampsToUTC);
+    });
+  });
+
+  describe("computeIdleDaysExcludingOOO", function () {
+    const ONE_DAY_MS = 1000 * 60 * 60 * 24;
+
+    it("should return total idle days when no OOO period", function () {
+      const windowStart = Date.now() - 10 * ONE_DAY_MS;
+      const now = Date.now();
+      const days = computeIdleDaysExcludingOOO(windowStart, null, null, null, now);
+      expect(days).to.equal(10);
+    });
+
+    it("should exclude last OOO period from idle days", function () {
+      const windowStart = Date.now() - 15 * ONE_DAY_MS;
+      const oooFrom = Date.now() - 10 * ONE_DAY_MS;
+      const oooUntil = Date.now() - 5 * ONE_DAY_MS;
+      const now = Date.now();
+      const days = computeIdleDaysExcludingOOO(windowStart, oooFrom, oooUntil, null, now);
+      expect(days).to.equal(10);
+    });
+
+    it("should fall back to currentStatusFrom when idleWindowStartedAt is missing", function () {
+      const currentStatusFrom = Date.now() - 8 * ONE_DAY_MS;
+      const now = Date.now();
+      const days = computeIdleDaysExcludingOOO(null, null, null, currentStatusFrom, now);
+      expect(days).to.equal(8);
+    });
+
+    it("should return 0 when window has no span", function () {
+      const now = Date.now();
+      const days = computeIdleDaysExcludingOOO(now, null, null, null, now);
+      expect(days).to.equal(0);
     });
   });
 });
