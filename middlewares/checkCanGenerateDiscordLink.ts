@@ -33,6 +33,7 @@ const checkCanGenerateDiscordLink = async (req: CustomRequest, res: CustomRespon
     }
 
     req.approvedApplicationRole = approvedApplication.role;
+    req.approvedApplicationId = approvedApplication.id;
     return next();
   } catch (error) {
     return res.boom.badImplementation("An error occurred while checking user applications.");
