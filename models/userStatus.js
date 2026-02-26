@@ -249,6 +249,12 @@ const updateUserStatus = async (userId, updatedStatusData) => {
       });
       if (lastOooUntilUpdate !== undefined) {
         newStatusData.lastOooUntil = lastOooUntilUpdate;
+        if (previousState === userState.OOO && previousCurrentStatus.from != null) {
+          newStatusData.lastOooFrom = previousCurrentStatus.from;
+        }
+      }
+      if (requestedNextState === userState.IDLE && previousState === userState.ACTIVE) {
+        newStatusData.idleWindowStartedAt = newStatusData.currentStatus?.from ?? newStatusData.currentStatus?.updatedAt;
       }
       if (
         userStatusData.currentStatus?.state === userState.IDLE &&
@@ -270,7 +276,11 @@ const updateUserStatus = async (userId, updatedStatusData) => {
           }
         }
       }
-      const { id } = await userStatusModel.add({ userId, lastOooUntil: null, ...newStatusData });
+      const initialData = { userId, lastOooUntil: null, ...newStatusData };
+      if (newStatusData.currentStatus?.state === userState.IDLE) {
+        initialData.idleWindowStartedAt = newStatusData.currentStatus.from ?? newStatusData.currentStatus.updatedAt;
+      }
+      const { id } = await userStatusModel.add(initialData);
       return { id, userStatusExists: false, data: newStatusData };
     }
   } catch (error) {
@@ -321,6 +331,9 @@ const updateAllUserStatus = async () => {
           });
           if (lastOooUntilUpdate !== undefined) {
             newStatusData.lastOooUntil = lastOooUntilUpdate;
+            if (currentState === userState.OOO && currentStatus?.from != null) {
+              newStatusData.lastOooFrom = currentStatus.from;
+            }
           }
           toUpdate = !toUpdate;
           summary.oooUsersAltered++;
@@ -345,6 +358,7 @@ const updateAllUserStatus = async () => {
           newStatusData.currentStatus = newCurrentStatus;
           newStatusData.futureStatus = newFutureStatus;
           newStatusData.lastOooUntil = null;
+          newStatusData.lastOooFrom = null;
           toUpdate = !toUpdate;
           summary.nonOooUsersAltered++;
         } else {
@@ -574,10 +588,15 @@ const batchUpdateUsersStatus = async (users) => {
             nextState,
             fallbackTimestamp: currentTimeStamp,
           });
-          batch.update(docRef, {
+          const currentStatusData = data?.currentStatus || {};
+          const batchUpdateData = {
             currentStatus: statusToUpdate,
-            ...(lastOooUntilUpdate !== undefined && { lastOooUntil: lastOooUntilUpdate }),
-          });
+            ...(lastOooUntilUpdate !== undefined && {
+              lastOooUntil: lastOooUntilUpdate,
+              ...(currentStatusData.from != null && { lastOooFrom: currentStatusData.from }),
+            }),
+          };
+          batch.update(docRef, batchUpdateData);
         } else {
           const getNextDayAfterUntil = getNextDayTimeStamp(currentUntil);
           batch.update(docRef, {
@@ -602,6 +621,9 @@ const batchUpdateUsersStatus = async (users) => {
         });
         if (lastOooUntilUpdate !== undefined) {
           updatedStatusData.lastOooUntil = lastOooUntilUpdate;
+        }
+        if (state === userState.IDLE && currentState === userState.ACTIVE) {
+          updatedStatusData.idleWindowStartedAt = statusToUpdate.from ?? currentTimeStamp;
         }
         batch.update(docRef, updatedStatusData);
       }
@@ -713,6 +735,9 @@ const cancelOooStatus = async (userId) => {
     });
     if (lastOooUntilUpdate !== undefined) {
       newStatusData.lastOooUntil = lastOooUntilUpdate;
+      if (docData.currentStatus?.from != null) {
+        newStatusData.lastOooFrom = docData.currentStatus.from;
+      }
     }
     if (futureStatus?.state) {
       newStatusData.futureStatus = {};
