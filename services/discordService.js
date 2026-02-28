@@ -77,6 +77,36 @@ const addRoleToUser = async (userid, roleid) => {
   }
 };
 
+const updateDiscordGroupRole = async (roleId, roleName, description, dev) => {
+  const authToken = generateAuthTokenForCloudflare();
+  try {
+    const response = await fetch(`${DISCORD_BASE_URL}/roles/${roleId}?dev=${dev}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        roleName,
+        description,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+    if (response.status === 204) {
+      return {
+        success: true,
+        message: "Role updated successfully",
+      };
+    }
+    return {
+      success: false,
+      message: response.message || "Failed to update role in Discord",
+    };
+  } catch (error) {
+    logger.error(`Error in updating group role  in discord: ${error}`);
+    throw new Error(error);
+  }
+};
+
 const removeRoleFromUser = async (roleId, discordId, userData) => {
   try {
     const headers = generateCloudFlareHeaders(userData);
@@ -149,6 +179,7 @@ const deleteGroupRoleFromDiscord = async (roleId) => {
 
 module.exports = {
   getDiscordMembers,
+  updateDiscordGroupRole,
   getDiscordRoles,
   setInDiscordFalseScript,
   addRoleToUser,
