@@ -12,7 +12,12 @@ const applicationModel = require("../../models/applications");
 
 const applicationsData = require("../fixtures/applications/applications")();
 const cookieName = config.get("userToken.cookieName");
-const { APPLICATION_ERROR_MESSAGES, API_RESPONSE_MESSAGES, APPLICATION_SCORE } = require("../../constants/application");
+const {
+  APPLICATION_ERROR_MESSAGES,
+  API_RESPONSE_MESSAGES,
+  APPLICATION_SCORE,
+  APPLICATION_STATUS_TYPES,
+} = require("../../constants/application");
 const imageService = require("../../services/imageService");
 const { Buffer } = require("node:buffer");
 
@@ -378,6 +383,34 @@ describe("Application", function () {
         });
     });
 
+    it("should set application status to pending after a successful edit from changes_requested", async function () {
+      const applicationData = {
+        ...applicationsData[1],
+        userId,
+        status: APPLICATION_STATUS_TYPES.CHANGES_REQUESTED,
+      };
+      const editableApplicationId = await applicationModel.addApplication(applicationData);
+
+      expect(applicationData.status).to.equal(APPLICATION_STATUS_TYPES.CHANGES_REQUESTED);
+
+      const patchRes = await chai
+        .request(app)
+        .patch(`/applications/${editableApplicationId}`)
+        .set("cookie", `${cookieName}=${jwt}`)
+        .send({ introduction: "Updated introduction text" });
+
+      expect(patchRes).to.have.status(200);
+      expect(patchRes.body.message).to.be.equal("Application updated successfully");
+
+      const getRes = await chai
+        .request(app)
+        .get(`/applications/${editableApplicationId}`)
+        .set("cookie", `${cookieName}=${superUserJwt}`);
+
+      expect(getRes).to.have.status(200);
+      expect(getRes.body.application.status).to.be.equal("pending");
+    });
+
     it("should return 400 when request body is empty", function (done) {
       chai
         .request(app)
@@ -504,6 +537,21 @@ describe("Application", function () {
       expect(secondRes).to.have.status(409);
       expect(secondRes.body.error).to.be.equal("Conflict");
       expect(secondRes.body.message).to.be.equal(APPLICATION_ERROR_MESSAGES.EDIT_TOO_SOON);
+    });
+
+    it("should return 409 when trying to edit an application that has already been reviewed", async function () {
+      const reviewedApplicationData = { ...applicationsData[1], userId };
+      const reviewedApplicationId = await applicationModel.addApplication(reviewedApplicationData);
+
+      const res = await chai
+        .request(app)
+        .patch(`/applications/${reviewedApplicationId}`)
+        .set("cookie", `${cookieName}=${jwt}`)
+        .send({ introduction: "Attempt edit after review" });
+
+      expect(res).to.have.status(409);
+      expect(res.body.error).to.be.equal("Conflict");
+      expect(res.body.message).to.be.equal(APPLICATION_ERROR_MESSAGES.APPLICATION_ALREADY_REVIEWED);
     });
 
     it("should return 200 when updating city, state, and country", async function () {
