@@ -150,6 +150,10 @@ const updateApplication = async (
 
     const application = applicationDoc.data();
 
+    if (application.userId !== userId) {
+      return { status: APPLICATION_STATUS.unauthorized };
+    }
+
     const isEditableApplicationStatus =
       application.status === APPLICATION_STATUS_TYPES.PENDING ||
       application.status === APPLICATION_STATUS_TYPES.CHANGES_REQUESTED;
@@ -158,9 +162,6 @@ const updateApplication = async (
       return { status: APPLICATION_STATUS.notPending };
     }
 
-    if (application.userId !== userId) {
-      return { status: APPLICATION_STATUS.unauthorized };
-    }
 
     const lastEditAt = application.lastEditAt;
     if (lastEditAt) {

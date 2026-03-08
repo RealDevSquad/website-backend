@@ -540,7 +540,11 @@ describe("Application", function () {
     });
 
     it("should return 409 when trying to edit an application that has already been reviewed", async function () {
-      const reviewedApplicationData = { ...applicationsData[1], userId };
+      const reviewedApplicationData = {
+        ...applicationsData[1],
+        userId,
+        status: APPLICATION_STATUS_TYPES.ACCEPTED,
+      };
       const reviewedApplicationId = await applicationModel.addApplication(reviewedApplicationData);
 
       const res = await chai
