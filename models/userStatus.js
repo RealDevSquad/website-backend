@@ -184,11 +184,15 @@ const getAllUserStatus = async (query) => {
         .get();
     }
     data.forEach((doc) => {
+      const docData = doc.data();
       const currentUserStatus = {
         id: doc.id,
-        userId: doc.data().userId,
-        currentStatus: doc.data().currentStatus,
-        monthlyHours: doc.data().monthlyHours,
+        userId: docData.userId,
+        currentStatus: docData.currentStatus,
+        monthlyHours: docData.monthlyHours,
+        idleWindowStartedAt: docData.idleWindowStartedAt ?? null,
+        lastOooFrom: docData.lastOooFrom ?? null,
+        lastOooUntil: docData.lastOooUntil ?? null,
       };
       allUserStatus.push(currentUserStatus);
     });
@@ -255,6 +259,8 @@ const updateUserStatus = async (userId, updatedStatusData) => {
       }
       if (requestedNextState === userState.IDLE && previousState === userState.ACTIVE) {
         newStatusData.idleWindowStartedAt = newStatusData.currentStatus?.from ?? newStatusData.currentStatus?.updatedAt;
+      } else if (requestedNextState === userState.ACTIVE) {
+        newStatusData.idleWindowStartedAt = null;
       }
       if (
         userStatusData.currentStatus?.state === userState.IDLE &&
@@ -624,6 +630,8 @@ const batchUpdateUsersStatus = async (users) => {
         }
         if (state === userState.IDLE && currentState === userState.ACTIVE) {
           updatedStatusData.idleWindowStartedAt = statusToUpdate.from ?? currentTimeStamp;
+        } else if (state === userState.ACTIVE) {
+          updatedStatusData.idleWindowStartedAt = null;
         }
         batch.update(docRef, updatedStatusData);
       }

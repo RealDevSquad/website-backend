@@ -658,8 +658,12 @@ const updateIdle7dUsersOnDiscord = async (dev) => {
 
   try {
     groupIdle7dRole = await getGroupRole("group-idle-7d+");
+    if (!groupIdle7dRole?.roleExists || !groupIdle7dRole?.role?.roleid) {
+      throw new Error(
+        "Idle 7d+ role does not exist or has no roleid. Ensure discord-roles has a document with rolename 'group-idle-7d+'."
+      );
+    }
     groupIdle7dRoleId = groupIdle7dRole.role.roleid;
-    if (!groupIdle7dRole.roleExists) throw new Error("Idle Role does not exist");
 
     const { allUserStatus } = await getAllUserStatus({ state: userState.IDLE });
     const discordUsers = await getDiscordMembers();
@@ -679,21 +683,20 @@ const updateIdle7dUsersOnDiscord = async (dev) => {
       }
     });
 
+    const nowMs = Date.now();
+
     if (allUserStatus) {
-      const nowMs = Date.now();
       await Promise.all(
         allUserStatus.map(async (userStatus) => {
           try {
-            const fullStatusDoc = await userStatusModel.doc(userStatus.id).get();
-            const fullData = fullStatusDoc.exists ? fullStatusDoc.data() : {};
             const idleDays = computeIdleDaysExcludingOOO(
-              fullData.idleWindowStartedAt,
-              fullData.lastOooFrom,
-              fullData.lastOooUntil,
+              userStatus.idleWindowStartedAt,
+              userStatus.lastOooFrom,
+              userStatus.lastOooUntil,
               userStatus.currentStatus?.from,
               nowMs
             );
-            if (idleDays <= 7) {
+            if (idleDays < 7) {
               return;
             }
             const userData = await userModel.doc(userStatus.userId).get();
