@@ -689,6 +689,10 @@ const updateIdle7dUsersOnDiscord = async (dev) => {
       await Promise.all(
         allUserStatus.map(async (userStatus) => {
           try {
+            if (!userStatus?.userId) {
+              logger.warn("updateIdle7dUsersOnDiscord: skipping user status with missing userId");
+              return;
+            }
             const idleDays = computeIdleDaysExcludingOOO(
               userStatus.idleWindowStartedAt,
               userStatus.lastOooFrom,
@@ -700,14 +704,15 @@ const updateIdle7dUsersOnDiscord = async (dev) => {
               return;
             }
             const userData = await userModel.doc(userStatus.userId).get();
-            const isUserArchived = userData.data()?.roles?.archived;
-            if (userData.exists) {
+            const userPayload = userData?.data?.();
+            const isUserArchived = userPayload?.roles?.archived;
+            if (userData?.exists) {
               if (isUserArchived) {
                 totalArchivedUsers++;
-              } else if (dev === "true" && !allMavens.includes(userData.data().discordId)) {
+              } else if (dev === "true" && !allMavens.includes(userPayload?.discordId)) {
                 const shouldAdd = await shouldAddIdleUser(userStatus, tasksModel);
                 if (shouldAdd) {
-                  userStatus.userid = userData.data().discordId;
+                  userStatus.userid = userPayload?.discordId;
                   allIdle7dUsers.push(userStatus);
                 }
               }

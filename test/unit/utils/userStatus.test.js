@@ -139,5 +139,12 @@ describe("User Status Functions", function () {
       const days = computeIdleDaysExcludingOOO(now, null, null, null, now);
       expect(days).to.equal(0);
     });
+
+    it("should return 0 when window start is in the future (edge case)", function () {
+      const now = Date.now();
+      const futureStart = now + 5 * ONE_DAY_MS;
+      const days = computeIdleDaysExcludingOOO(futureStart, null, null, null, now);
+      expect(days).to.equal(0);
+    });
   });
 });
