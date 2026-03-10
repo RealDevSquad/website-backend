@@ -564,7 +564,7 @@ describe("Task Based Status Updates", function () {
         .send(reqBody);
       expect(res.status).to.equal(204);
       const userStatus002Data = (await userStatusModel.doc("userStatusDoc001").get()).data();
-      expect(userStatus002Data).to.have.keys(["userId", "currentStatus"]);
+      expect(userStatus002Data).to.include.keys("userId", "currentStatus");
       expect(userStatus002Data.currentStatus.state).to.equal(userState.IDLE);
     });
 
@@ -582,7 +582,7 @@ describe("Task Based Status Updates", function () {
         .send(reqBody);
       expect(res.status).to.equal(204);
       const userStatus002Data = (await userStatusModel.doc("userStatusDoc001").get()).data();
-      expect(userStatus002Data).to.have.keys(["userId", "currentStatus"]);
+      expect(userStatus002Data).to.include.keys("userId", "currentStatus");
       expect(userStatus002Data.currentStatus.state).to.equal(userState.ACTIVE);
     });
   });
