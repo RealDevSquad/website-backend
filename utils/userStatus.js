@@ -62,32 +62,87 @@ const resolveLastOooUntil = ({ previousState, previousUntil, nextState, fallback
 
 const ONE_DAY_MS = 1000 * 60 * 60 * 24;
 
+const normalizeOooPeriod = (period) => {
+  if (!period || typeof period !== "object") return null;
+  const from = normalizeTimestamp(period.from);
+  const until = normalizeTimestamp(period.until);
+  if (from == null || until == null || from >= until) {
+    return null;
+  }
+  return { from, until };
+};
+
+const mergeOooPeriods = (periods) => {
+  if (!periods.length) return [];
+  const sorted = [...periods].sort((a, b) => a.from - b.from);
+  const merged = [];
+  for (const period of sorted) {
+    if (!merged.length || period.from > merged[merged.length - 1].until) {
+      merged.push({ ...period });
+      continue;
+    }
+    merged[merged.length - 1].until = Math.max(merged[merged.length - 1].until, period.until);
+  }
+  return merged;
+};
+
 /**
- * Computes total idle days in the window [windowStart, now], excluding the last OOO period.
- * Used for group-idle-7d+ so that OOO days are not counted toward the 7-day idle threshold.
+ * Appends a valid OOO interval to oooPeriods and merges overlaps.
+ * Keeps the structure stable for downstream idle-day calculation.
  *
- *
- * @param {number|string|admin.firestore.Timestamp|null|undefined} idleWindowStartedAt - When idle window started (e.g. task completed).
- * @param {number|string|admin.firestore.Timestamp|null|undefined} lastOooFrom - Start of last OOO period (we know "from when" OOO via this).
- * @param {number|string|admin.firestore.Timestamp|null|undefined} lastOooUntil - End of last OOO period.
- * @param {number|string|admin.firestore.Timestamp|null|undefined} currentStatusFrom - Fallback window start (e.g. currentStatus.from).
- * @param {number} nowMs - Reference "now" in milliseconds.
- * @returns {number} Total idle days (excluding OOO) in the window.
+ * @param {Array<{from:number|string,until:number|string}>|undefined|null} existingPeriods
+ * @param {number|string|null|undefined} from
+ * @param {number|string|null|undefined} until
+ * @returns {Array<{from:number,until:number}>}
  */
-const computeIdleDaysExcludingOOO = (idleWindowStartedAt, lastOooFrom, lastOooUntil, currentStatusFrom, nowMs) => {
+const appendOooPeriod = (existingPeriods, from, until) => {
+  const nextPeriods = Array.isArray(existingPeriods) ? existingPeriods.map(normalizeOooPeriod).filter(Boolean) : [];
+  const next = normalizeOooPeriod({ from, until });
+  if (!next) {
+    return mergeOooPeriods(nextPeriods);
+  }
+  nextPeriods.push(next);
+  return mergeOooPeriods(nextPeriods);
+};
+
+/**
+ * Computes total idle days in [windowStart, now], excluding OOO durations.
+ * Supports multiple OOO periods via oooPeriods and falls back to lastOooFrom/lastOooUntil.
+ *
+ * @param {number|string|admin.firestore.Timestamp|null|undefined} idleWindowStartedAt
+ * @param {number|string|admin.firestore.Timestamp|null|undefined} lastOooFrom
+ * @param {number|string|admin.firestore.Timestamp|null|undefined} lastOooUntil
+ * @param {number|string|admin.firestore.Timestamp|null|undefined} currentStatusFrom
+ * @param {number} nowMs
+ * @param {Array<{from:number|string,until:number|string}>|undefined|null} oooPeriods
+ * @returns {number}
+ */
+const computeIdleDaysExcludingOOO = (
+  idleWindowStartedAt,
+  lastOooFrom,
+  lastOooUntil,
+  currentStatusFrom,
+  nowMs,
+  oooPeriods
+) => {
   const rawWindowStart = normalizeTimestamp(idleWindowStartedAt) ?? normalizeTimestamp(currentStatusFrom) ?? nowMs;
   const windowStart = Math.min(rawWindowStart, nowMs);
   const windowEnd = nowMs;
   let totalMs = Math.max(0, windowEnd - windowStart);
 
-  const oooFrom = normalizeTimestamp(lastOooFrom);
-  const oooUntil = normalizeTimestamp(lastOooUntil);
-  if (oooFrom != null && oooUntil != null && oooFrom < oooUntil) {
-    const overlapStart = Math.max(windowStart, oooFrom);
-    const overlapEnd = Math.min(windowEnd, oooUntil);
+  let effectivePeriods = Array.isArray(oooPeriods) ? appendOooPeriod(oooPeriods, null, null) : [];
+  if (!effectivePeriods.length) {
+    const fallbackPeriod = normalizeOooPeriod({ from: lastOooFrom, until: lastOooUntil });
+    if (fallbackPeriod) {
+      effectivePeriods = [fallbackPeriod];
+    }
+  }
+
+  for (const period of effectivePeriods) {
+    const overlapStart = Math.max(windowStart, period.from);
+    const overlapEnd = Math.min(windowEnd, period.until);
     if (overlapStart < overlapEnd) {
-      const overlapMs = overlapEnd - overlapStart;
-      totalMs = Math.max(0, totalMs - overlapMs);
+      totalMs = Math.max(0, totalMs - (overlapEnd - overlapStart));
     }
   }
 
@@ -233,6 +288,19 @@ const updateCurrentStatusToState = async (collection, latestStatusData, newState
   });
   if (lastOooUntilUpdate !== undefined) {
     updatedStatusData.lastOooUntil = lastOooUntilUpdate;
+    if (previousState === userState.OOO && currentStatus.from != null) {
+      updatedStatusData.lastOooFrom = currentStatus.from;
+      updatedStatusData.oooPeriods = appendOooPeriod(docData.oooPeriods, currentStatus.from, lastOooUntilUpdate);
+    }
+    if (newState === userState.OOO) {
+      updatedStatusData.lastOooFrom = null;
+      updatedStatusData.lastOooUntil = null;
+    }
+  }
+  if (newState === userState.IDLE && previousState === userState.ACTIVE) {
+    updatedStatusData.idleWindowStartedAt = currentTimeStamp;
+  } else if (newState === userState.ACTIVE) {
+    updatedStatusData.idleWindowStartedAt = null;
   }
   try {
     await collection.doc(id).update(updatedStatusData);
@@ -315,9 +383,10 @@ const updateFutureStatusToState = async (collection, latestStatusData, newState)
 const createUserStatusWithState = async (userId, collection, state) => {
   const currentTimeStamp = new Date().getTime();
   try {
-    await collection.add({
+    const payload = {
       userId,
       lastOooUntil: null,
+      oooPeriods: [],
       currentStatus: {
         state,
         message: "",
@@ -325,7 +394,11 @@ const createUserStatusWithState = async (userId, collection, state) => {
         until: "",
         updatedAt: currentTimeStamp,
       },
-    });
+    };
+    if (state === userState.IDLE) {
+      payload.idleWindowStartedAt = currentTimeStamp;
+    }
+    await collection.add(payload);
   } catch (err) {
     logger.error(`error creating the current status for user id ${userId} - ${err.message}`);
     throw new Error("Status Creation Failed.");
@@ -475,5 +548,6 @@ module.exports = {
   convertTimestampsToUTC,
   normalizeTimestamp,
   resolveLastOooUntil,
+  appendOooPeriod,
   computeIdleDaysExcludingOOO,
 };

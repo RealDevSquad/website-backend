@@ -16,6 +16,7 @@ const {
   getNextDayTimeStamp,
   convertTimestampsToUTC,
   resolveLastOooUntil,
+  appendOooPeriod,
 } = require("../utils/userStatus");
 const { TASK_STATUS } = require("../constants/tasks");
 const userStatusModel = firestore.collection("usersStatus");
@@ -193,6 +194,7 @@ const getAllUserStatus = async (query) => {
         idleWindowStartedAt: docData.idleWindowStartedAt ?? null,
         lastOooFrom: docData.lastOooFrom ?? null,
         lastOooUntil: docData.lastOooUntil ?? null,
+        oooPeriods: Array.isArray(docData.oooPeriods) ? docData.oooPeriods : [],
       };
       allUserStatus.push(currentUserStatus);
     });
@@ -255,6 +257,15 @@ const updateUserStatus = async (userId, updatedStatusData) => {
         newStatusData.lastOooUntil = lastOooUntilUpdate;
         if (previousState === userState.OOO && previousCurrentStatus.from != null) {
           newStatusData.lastOooFrom = previousCurrentStatus.from;
+          newStatusData.oooPeriods = appendOooPeriod(
+            userStatusData.oooPeriods,
+            previousCurrentStatus.from,
+            lastOooUntilUpdate
+          );
+        }
+        if (requestedNextState === userState.OOO) {
+          newStatusData.lastOooFrom = null;
+          newStatusData.lastOooUntil = null;
         }
       }
       if (requestedNextState === userState.IDLE && previousState === userState.ACTIVE) {
@@ -282,7 +293,7 @@ const updateUserStatus = async (userId, updatedStatusData) => {
           }
         }
       }
-      const initialData = { userId, lastOooUntil: null, ...newStatusData };
+      const initialData = { userId, lastOooUntil: null, oooPeriods: [], ...newStatusData };
       if (newStatusData.currentStatus?.state === userState.IDLE) {
         initialData.idleWindowStartedAt = newStatusData.currentStatus.from ?? newStatusData.currentStatus.updatedAt;
       }
@@ -339,6 +350,7 @@ const updateAllUserStatus = async () => {
             newStatusData.lastOooUntil = lastOooUntilUpdate;
             if (currentState === userState.OOO && currentStatus?.from != null) {
               newStatusData.lastOooFrom = currentStatus.from;
+              newStatusData.oooPeriods = appendOooPeriod(doc.oooPeriods, currentStatus.from, lastOooUntilUpdate);
             }
           }
           toUpdate = !toUpdate;
@@ -552,6 +564,7 @@ const batchUpdateUsersStatus = async (users) => {
       const newUserStatusData = {
         userId,
         lastOooUntil: null,
+        oooPeriods: [],
         currentStatus: statusToUpdate,
       };
       state === userState.ACTIVE ? summary.activeUsersAltered++ : summary.idleUsersAltered++;
@@ -600,6 +613,9 @@ const batchUpdateUsersStatus = async (users) => {
             ...(lastOooUntilUpdate !== undefined && {
               lastOooUntil: lastOooUntilUpdate,
               ...(currentStatusData.from != null && { lastOooFrom: currentStatusData.from }),
+              ...(currentStatusData.from != null && {
+                oooPeriods: appendOooPeriod(data?.oooPeriods, currentStatusData.from, lastOooUntilUpdate),
+              }),
             }),
           };
           batch.update(docRef, batchUpdateData);
@@ -745,6 +761,7 @@ const cancelOooStatus = async (userId) => {
       newStatusData.lastOooUntil = lastOooUntilUpdate;
       if (docData.currentStatus?.from != null) {
         newStatusData.lastOooFrom = docData.currentStatus.from;
+        newStatusData.oooPeriods = appendOooPeriod(docData.oooPeriods, docData.currentStatus.from, lastOooUntilUpdate);
       }
     }
     if (futureStatus?.state) {

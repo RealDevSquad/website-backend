@@ -146,5 +146,27 @@ describe("User Status Functions", function () {
       const days = computeIdleDaysExcludingOOO(futureStart, null, null, null, now);
       expect(days).to.equal(0);
     });
+
+    it("should subtract multiple OOO periods when oooPeriods is provided", function () {
+      const now = Date.now();
+      const windowStart = now - 20 * ONE_DAY_MS;
+      const oooPeriods = [
+        { from: now - 18 * ONE_DAY_MS, until: now - 16 * ONE_DAY_MS }, // 2 days
+        { from: now - 10 * ONE_DAY_MS, until: now - 7 * ONE_DAY_MS }, // 3 days
+      ];
+      const days = computeIdleDaysExcludingOOO(windowStart, null, null, null, now, oooPeriods);
+      expect(days).to.equal(15);
+    });
+
+    it("should merge overlapping OOO periods and not double subtract", function () {
+      const now = Date.now();
+      const windowStart = now - 20 * ONE_DAY_MS;
+      const oooPeriods = [
+        { from: now - 12 * ONE_DAY_MS, until: now - 8 * ONE_DAY_MS }, // 4 days
+        { from: now - 10 * ONE_DAY_MS, until: now - 6 * ONE_DAY_MS }, // overlaps by 2 days
+      ];
+      const days = computeIdleDaysExcludingOOO(windowStart, null, null, null, now, oooPeriods);
+      expect(days).to.equal(14);
+    });
   });
 });

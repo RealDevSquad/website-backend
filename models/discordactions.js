@@ -698,7 +698,8 @@ const updateIdle7dUsersOnDiscord = async (dev) => {
               userStatus.lastOooFrom,
               userStatus.lastOooUntil,
               userStatus.currentStatus?.from,
-              nowMs
+              nowMs,
+              userStatus.oooPeriods
             );
             if (idleDays < 7) {
               return;
