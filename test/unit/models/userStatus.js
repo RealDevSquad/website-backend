@@ -34,10 +34,6 @@ describe("tasks", function () {
     expect(response.data.userId).to.equal(userId);
     expect(response.data.currentStatus).to.not.equal(userState.OOO);
     expect(response.data.futureStatus?.state).to.equal(undefined);
-    expect(response.data.lastOooFrom != null).to.equal(true);
-    expect(response.data.lastOooUntil != null).to.equal(true);
-    expect(response.data.oooPeriods).to.be.an("array");
-    expect(response.data.oooPeriods.length).to.be.greaterThan(0);
   });
 
   it("Should clear the future Status if the User cancels OOO", async function () {

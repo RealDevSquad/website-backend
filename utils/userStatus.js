@@ -1,6 +1,8 @@
 const { NotFound } = require("http-errors");
 const { userState } = require("../constants/userStatus");
 const { convertTimestampToUTCStartOrEndOfDay } = require("./time");
+const firestore = require("./firestore");
+const requestsModel = firestore.collection("requests");
 
 /**
  * Normalizes various timestamp representations into a millisecond number.
@@ -34,32 +36,6 @@ const normalizeTimestamp = (value) => {
   return null;
 };
 
-/**
- * Determines the timestamp to persist in the `lastOooUntil` field based on state transitions.
- * If the user is moving out of OOO, the previous `until` is used (with fallbacks). If they are
- * headed into OOO, the stored value is cleared.
- *
- * @param {Object} params
- * @param {string|undefined} params.previousState - The state prior to the transition.
- * @param {number|string|admin.firestore.Timestamp|null|undefined} params.previousUntil - Previous OOO `until` value.
- * @param {string|undefined} params.nextState - The state being transitioned to.
- * @param {number|undefined} params.fallbackTimestamp - Optional fallback timestamp to use when `previousUntil` is invalid.
- * @returns {number|null|undefined} Millisecond timestamp when leaving OOO, null when entering OOO,
- * or undefined when no change to `lastOooUntil` is required.
- */
-const resolveLastOooUntil = ({ previousState, previousUntil, nextState, fallbackTimestamp }) => {
-  if (nextState === userState.OOO) {
-    return null;
-  }
-
-  const isLeavingOOO = previousState === userState.OOO && nextState !== undefined && nextState !== userState.OOO;
-  if (isLeavingOOO) {
-    return normalizeTimestamp(previousUntil) ?? normalizeTimestamp(fallbackTimestamp) ?? Date.now();
-  }
-
-  return undefined;
-};
-
 const ONE_DAY_MS = 1000 * 60 * 60 * 24;
 
 const normalizeOooPeriod = (period) => {
@@ -87,58 +63,52 @@ const mergeOooPeriods = (periods) => {
 };
 
 /**
- * Appends a valid OOO interval to oooPeriods and merges overlaps.
- * Keeps the structure stable for downstream idle-day calculation.
- *
- * @param {Array<{from:number|string,until:number|string}>|undefined|null} existingPeriods
- * @param {number|string|null|undefined} from
- * @param {number|string|null|undefined} until
- * @returns {Array<{from:number,until:number}>}
+ * @param {string} userId - The user's ID (requestedBy in requests collection)
+ * @param {number} windowStart - Start of the idle window in ms
+ * @param {number} windowEnd - End of the window (typically Date.now()) in ms
+ * @returns {Promise<Array<{from:number,until:number}>>} Merged OOO periods overlapping the window
  */
-const appendOooPeriod = (existingPeriods, from, until) => {
-  const nextPeriods = Array.isArray(existingPeriods) ? existingPeriods.map(normalizeOooPeriod).filter(Boolean) : [];
-  const next = normalizeOooPeriod({ from, until });
-  if (!next) {
-    return mergeOooPeriods(nextPeriods);
+const getApprovedOooPeriods = async (userId, windowStart, windowEnd) => {
+  try {
+    const snapshot = await requestsModel.where("requestedBy", "==", userId).where("type", "==", "OOO").get();
+
+    const periods = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      const isApproved = data.status === "APPROVED" || data.state === "APPROVED";
+      if (!isApproved) return;
+
+      const period = normalizeOooPeriod({ from: data.from, until: data.until });
+      if (!period) return;
+
+      if (period.until <= windowStart || period.from >= windowEnd) return;
+
+      periods.push(period);
+    });
+
+    return mergeOooPeriods(periods);
+  } catch (error) {
+    logger.error(`Error fetching approved OOO periods for user ${userId}: ${error.message}`);
+    return [];
   }
-  nextPeriods.push(next);
-  return mergeOooPeriods(nextPeriods);
 };
 
 /**
  * Computes total idle days in [windowStart, now], excluding OOO durations.
- * Supports multiple OOO periods via oooPeriods and falls back to lastOooFrom/lastOooUntil.
  *
  * @param {number|string|admin.firestore.Timestamp|null|undefined} idleWindowStartedAt
- * @param {number|string|admin.firestore.Timestamp|null|undefined} lastOooFrom
- * @param {number|string|admin.firestore.Timestamp|null|undefined} lastOooUntil
  * @param {number|string|admin.firestore.Timestamp|null|undefined} currentStatusFrom
  * @param {number} nowMs
- * @param {Array<{from:number|string,until:number|string}>|undefined|null} oooPeriods
+ * @param {Array<{from:number,until:number}>} oooPeriods - Pre-queried and merged OOO periods
  * @returns {number}
  */
-const computeIdleDaysExcludingOOO = (
-  idleWindowStartedAt,
-  lastOooFrom,
-  lastOooUntil,
-  currentStatusFrom,
-  nowMs,
-  oooPeriods
-) => {
+const computeIdleDaysExcludingOOO = (idleWindowStartedAt, currentStatusFrom, nowMs, oooPeriods = []) => {
   const rawWindowStart = normalizeTimestamp(idleWindowStartedAt) ?? normalizeTimestamp(currentStatusFrom) ?? nowMs;
   const windowStart = Math.min(rawWindowStart, nowMs);
   const windowEnd = nowMs;
   let totalMs = Math.max(0, windowEnd - windowStart);
 
-  let effectivePeriods = Array.isArray(oooPeriods) ? appendOooPeriod(oooPeriods, null, null) : [];
-  if (!effectivePeriods.length) {
-    const fallbackPeriod = normalizeOooPeriod({ from: lastOooFrom, until: lastOooUntil });
-    if (fallbackPeriod) {
-      effectivePeriods = [fallbackPeriod];
-    }
-  }
-
-  for (const period of effectivePeriods) {
+  for (const period of oooPeriods) {
     const overlapStart = Math.max(windowStart, period.from);
     const overlapEnd = Math.min(windowEnd, period.until);
     if (overlapStart < overlapEnd) {
@@ -268,7 +238,6 @@ const updateCurrentStatusToState = async (collection, latestStatusData, newState
     data: { currentStatus = {}, ...docData },
   } = latestStatusData;
   const previousState = currentStatus.state;
-  const previousUntil = currentStatus.until;
   const currentTimeStamp = new Date().getTime();
   const updatedStatusData = {
     ...docData,
@@ -280,23 +249,6 @@ const updateCurrentStatusToState = async (collection, latestStatusData, newState
       updatedAt: currentTimeStamp,
     },
   };
-  const lastOooUntilUpdate = resolveLastOooUntil({
-    previousState,
-    previousUntil,
-    nextState: newState,
-    fallbackTimestamp: currentTimeStamp,
-  });
-  if (lastOooUntilUpdate !== undefined) {
-    updatedStatusData.lastOooUntil = lastOooUntilUpdate;
-    if (previousState === userState.OOO && currentStatus.from != null) {
-      updatedStatusData.lastOooFrom = currentStatus.from;
-      updatedStatusData.oooPeriods = appendOooPeriod(docData.oooPeriods, currentStatus.from, lastOooUntilUpdate);
-    }
-    if (newState === userState.OOO) {
-      updatedStatusData.lastOooFrom = null;
-      updatedStatusData.lastOooUntil = null;
-    }
-  }
   if (newState === userState.IDLE && previousState === userState.ACTIVE) {
     updatedStatusData.idleWindowStartedAt = currentTimeStamp;
   } else if (newState === userState.ACTIVE) {
@@ -385,8 +337,6 @@ const createUserStatusWithState = async (userId, collection, state) => {
   try {
     const payload = {
       userId,
-      lastOooUntil: null,
-      oooPeriods: [],
       currentStatus: {
         state,
         message: "",
@@ -547,7 +497,6 @@ module.exports = {
   getFilteredPaginationLink,
   convertTimestampsToUTC,
   normalizeTimestamp,
-  resolveLastOooUntil,
-  appendOooPeriod,
+  getApprovedOooPeriods,
   computeIdleDaysExcludingOOO,
 };

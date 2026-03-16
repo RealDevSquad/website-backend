@@ -8,7 +8,12 @@ const { findSubscribedGroupIds } = require("../utils/helper");
 const { retrieveUsers } = require("../services/dataAccessLayer");
 const { BATCH_SIZE_IN_CLAUSE } = require("../constants/firebase");
 const { getAllUserStatus, getGroupRole, getUserStatus } = require("./userStatus");
-const { normalizeTimestamp, checkIfUserHasLiveTasks, computeIdleDaysExcludingOOO } = require("../utils/userStatus");
+const {
+  getApprovedOooPeriods,
+  normalizeTimestamp,
+  checkIfUserHasLiveTasks,
+  computeIdleDaysExcludingOOO,
+} = require("../utils/userStatus");
 const { userState, POST_OOO_GRACE_PERIOD_IN_DAYS } = require("../constants/userStatus");
 const config = require("config");
 const logger = require("../utils/logger");
@@ -693,13 +698,17 @@ const updateIdle7dUsersOnDiscord = async (dev) => {
               logger.warn("updateIdle7dUsersOnDiscord: skipping user status with missing userId");
               return;
             }
+            const windowStart =
+              normalizeTimestamp(userStatus.idleWindowStartedAt) ??
+              normalizeTimestamp(userStatus.currentStatus?.from) ??
+              nowMs;
+            const clampedWindowStart = Math.min(windowStart, nowMs);
+            const oooPeriods = await getApprovedOooPeriods(userStatus.userId, clampedWindowStart, nowMs);
             const idleDays = computeIdleDaysExcludingOOO(
               userStatus.idleWindowStartedAt,
-              userStatus.lastOooFrom,
-              userStatus.lastOooUntil,
               userStatus.currentStatus?.from,
               nowMs,
-              userStatus.oooPeriods
+              oooPeriods
             );
             if (idleDays < 7) {
               return;

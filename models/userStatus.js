@@ -15,8 +15,6 @@ const {
   generateNewStatus,
   getNextDayTimeStamp,
   convertTimestampsToUTC,
-  resolveLastOooUntil,
-  appendOooPeriod,
 } = require("../utils/userStatus");
 const { TASK_STATUS } = require("../constants/tasks");
 const userStatusModel = firestore.collection("usersStatus");
@@ -192,9 +190,6 @@ const getAllUserStatus = async (query) => {
         currentStatus: docData.currentStatus,
         monthlyHours: docData.monthlyHours,
         idleWindowStartedAt: docData.idleWindowStartedAt ?? null,
-        lastOooFrom: docData.lastOooFrom ?? null,
-        lastOooUntil: docData.lastOooUntil ?? null,
-        oooPeriods: Array.isArray(docData.oooPeriods) ? docData.oooPeriods : [],
       };
       allUserStatus.push(currentUserStatus);
     });
@@ -222,7 +217,6 @@ const updateUserStatus = async (userId, updatedStatusData) => {
       const userStatusData = userStatusDoc.data();
       const previousCurrentStatus = userStatusData.currentStatus || {};
       const previousState = previousCurrentStatus.state;
-      const previousUntil = previousCurrentStatus.until;
       let requestedNextState;
       if (Object.keys(newStatusData).includes("currentStatus")) {
         requestedNextState = newStatusData.currentStatus?.state;
@@ -245,27 +239,6 @@ const updateUserStatus = async (userId, updatedStatusData) => {
           } else {
             newStatusData.futureStatus = {};
           }
-        }
-      }
-      const lastOooUntilUpdate = resolveLastOooUntil({
-        previousState,
-        previousUntil,
-        nextState: requestedNextState,
-        fallbackTimestamp: newStatusData.currentStatus?.updatedAt,
-      });
-      if (lastOooUntilUpdate !== undefined) {
-        newStatusData.lastOooUntil = lastOooUntilUpdate;
-        if (previousState === userState.OOO && previousCurrentStatus.from != null) {
-          newStatusData.lastOooFrom = previousCurrentStatus.from;
-          newStatusData.oooPeriods = appendOooPeriod(
-            userStatusData.oooPeriods,
-            previousCurrentStatus.from,
-            lastOooUntilUpdate
-          );
-        }
-        if (requestedNextState === userState.OOO) {
-          newStatusData.lastOooFrom = null;
-          newStatusData.lastOooUntil = null;
         }
       }
       if (requestedNextState === userState.IDLE && previousState === userState.ACTIVE) {
@@ -293,7 +266,7 @@ const updateUserStatus = async (userId, updatedStatusData) => {
           }
         }
       }
-      const initialData = { userId, lastOooUntil: null, oooPeriods: [], ...newStatusData };
+      const initialData = { userId, ...newStatusData };
       if (newStatusData.currentStatus?.state === userState.IDLE) {
         initialData.idleWindowStartedAt = newStatusData.currentStatus.from ?? newStatusData.currentStatus.updatedAt;
       }
@@ -334,25 +307,11 @@ const updateAllUserStatus = async () => {
       const { futureStatus, currentStatus } = doc;
       const futureState = futureStatus?.state;
       const currentState = currentStatus?.state;
-      const currentUntil = currentStatus?.until;
       if (futureState === "ACTIVE" || futureState === "IDLE") {
         if (today >= futureStatus.from) {
           // OOO period is over and we need to update their current status
           newStatusData.currentStatus = { ...futureStatus, until: "", updatedAt: today };
           delete newStatusData.futureStatus;
-          const lastOooUntilUpdate = resolveLastOooUntil({
-            previousState: currentState,
-            previousUntil: currentUntil,
-            nextState: futureState,
-            fallbackTimestamp: today,
-          });
-          if (lastOooUntilUpdate !== undefined) {
-            newStatusData.lastOooUntil = lastOooUntilUpdate;
-            if (currentState === userState.OOO && currentStatus?.from != null) {
-              newStatusData.lastOooFrom = currentStatus.from;
-              newStatusData.oooPeriods = appendOooPeriod(doc.oooPeriods, currentStatus.from, lastOooUntilUpdate);
-            }
-          }
           toUpdate = !toUpdate;
           summary.oooUsersAltered++;
         } else {
@@ -375,8 +334,6 @@ const updateAllUserStatus = async () => {
           }
           newStatusData.currentStatus = newCurrentStatus;
           newStatusData.futureStatus = newFutureStatus;
-          newStatusData.lastOooUntil = null;
-          newStatusData.lastOooFrom = null;
           toUpdate = !toUpdate;
           summary.nonOooUsersAltered++;
         } else {
@@ -563,8 +520,6 @@ const batchUpdateUsersStatus = async (users) => {
       const newUserStatusRef = userStatusModel.doc();
       const newUserStatusData = {
         userId,
-        lastOooUntil: null,
-        oooPeriods: [],
         currentStatus: statusToUpdate,
       };
       state === userState.ACTIVE ? summary.activeUsersAltered++ : summary.idleUsersAltered++;
@@ -574,7 +529,6 @@ const batchUpdateUsersStatus = async (users) => {
       const currentStatusData = data?.currentStatus || {};
       const currentState = currentStatusData.state;
       const currentUntil = currentStatusData.until;
-      const nextState = state;
       if (currentState === state) {
         currentState === userState.ACTIVE ? summary.activeUsersUnaltered++ : summary.idleUsersUnaltered++;
         continue;
@@ -601,22 +555,8 @@ const batchUpdateUsersStatus = async (users) => {
 
         if (timeDifferenceDays >= 1) {
           if (state === userState.IDLE) await addGroupIdleRoleToDiscordUser(userId);
-          const lastOooUntilUpdate = resolveLastOooUntil({
-            previousState: currentState,
-            previousUntil: currentUntil,
-            nextState,
-            fallbackTimestamp: currentTimeStamp,
-          });
-          const currentStatusData = data?.currentStatus || {};
           const batchUpdateData = {
             currentStatus: statusToUpdate,
-            ...(lastOooUntilUpdate !== undefined && {
-              lastOooUntil: lastOooUntilUpdate,
-              ...(currentStatusData.from != null && { lastOooFrom: currentStatusData.from }),
-              ...(currentStatusData.from != null && {
-                oooPeriods: appendOooPeriod(data?.oooPeriods, currentStatusData.from, lastOooUntilUpdate),
-              }),
-            }),
           };
           batch.update(docRef, batchUpdateData);
         } else {
@@ -635,15 +575,6 @@ const batchUpdateUsersStatus = async (users) => {
         const updatedStatusData = {
           currentStatus: statusToUpdate,
         };
-        const lastOooUntilUpdate = resolveLastOooUntil({
-          previousState: currentState,
-          previousUntil: currentUntil,
-          nextState,
-          fallbackTimestamp: currentTimeStamp,
-        });
-        if (lastOooUntilUpdate !== undefined) {
-          updatedStatusData.lastOooUntil = lastOooUntilUpdate;
-        }
         if (state === userState.IDLE && currentState === userState.ACTIVE) {
           updatedStatusData.idleWindowStartedAt = statusToUpdate.from ?? currentTimeStamp;
         } else if (state === userState.ACTIVE) {
@@ -751,23 +682,32 @@ const cancelOooStatus = async (userId) => {
     }
     const updatedStatus = generateNewStatus(isActive);
     const newStatusData = { ...docData, ...updatedStatus };
-    const lastOooUntilUpdate = resolveLastOooUntil({
-      previousState: docData.currentStatus?.state,
-      previousUntil: docData.currentStatus?.until,
-      nextState: updatedStatus.currentStatus?.state,
-      fallbackTimestamp: Date.now(),
-    });
-    if (lastOooUntilUpdate !== undefined) {
-      newStatusData.lastOooUntil = lastOooUntilUpdate;
-      if (docData.currentStatus?.from != null) {
-        newStatusData.lastOooFrom = docData.currentStatus.from;
-        newStatusData.oooPeriods = appendOooPeriod(docData.oooPeriods, docData.currentStatus.from, lastOooUntilUpdate);
-      }
-    }
     if (futureStatus?.state) {
       newStatusData.futureStatus = {};
     }
     await userStatusModel.doc(docId).update(newStatusData);
+
+    try {
+      const requestsCollection = firestore.collection("requests");
+      const oooRequests = await requestsCollection
+        .where("requestedBy", "==", userId)
+        .where("type", "==", "OOO")
+        .orderBy("createdAt", "desc")
+        .limit(1)
+        .get();
+
+      if (!oooRequests.empty) {
+        const requestDoc = oooRequests.docs[0];
+        const requestData = requestDoc.data();
+        const isApproved = requestData.status === "APPROVED" || requestData.state === "APPROVED";
+        if (isApproved) {
+          await requestsCollection.doc(requestDoc.id).update({ until: Date.now() });
+        }
+      }
+    } catch (error) {
+      logger.error(`Error updating OOO request until on cancel for user ${userId}: ${error.message}`);
+    }
+
     if (!isActive) {
       await addGroupIdleRoleToDiscordUser(userId);
     }

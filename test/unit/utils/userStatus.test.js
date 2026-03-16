@@ -114,59 +114,74 @@ describe("User Status Functions", function () {
     it("should return total idle days when no OOO period", function () {
       const windowStart = Date.now() - 10 * ONE_DAY_MS;
       const now = Date.now();
-      const days = computeIdleDaysExcludingOOO(windowStart, null, null, null, now);
+      const days = computeIdleDaysExcludingOOO(windowStart, null, now);
       expect(days).to.equal(10);
     });
 
-    it("should exclude last OOO period from idle days", function () {
-      const windowStart = Date.now() - 15 * ONE_DAY_MS;
-      const oooFrom = Date.now() - 10 * ONE_DAY_MS;
-      const oooUntil = Date.now() - 5 * ONE_DAY_MS;
+    it("should exclude OOO periods from idle days", function () {
       const now = Date.now();
-      const days = computeIdleDaysExcludingOOO(windowStart, oooFrom, oooUntil, null, now);
+      const windowStart = now - 15 * ONE_DAY_MS;
+      const oooPeriods = [{ from: now - 10 * ONE_DAY_MS, until: now - 5 * ONE_DAY_MS }];
+      const days = computeIdleDaysExcludingOOO(windowStart, null, now, oooPeriods);
       expect(days).to.equal(10);
     });
 
     it("should fall back to currentStatusFrom when idleWindowStartedAt is missing", function () {
       const currentStatusFrom = Date.now() - 8 * ONE_DAY_MS;
       const now = Date.now();
-      const days = computeIdleDaysExcludingOOO(null, null, null, currentStatusFrom, now);
+      const days = computeIdleDaysExcludingOOO(null, currentStatusFrom, now);
       expect(days).to.equal(8);
     });
 
     it("should return 0 when window has no span", function () {
       const now = Date.now();
-      const days = computeIdleDaysExcludingOOO(now, null, null, null, now);
+      const days = computeIdleDaysExcludingOOO(now, null, now);
       expect(days).to.equal(0);
     });
 
     it("should return 0 when window start is in the future (edge case)", function () {
       const now = Date.now();
       const futureStart = now + 5 * ONE_DAY_MS;
-      const days = computeIdleDaysExcludingOOO(futureStart, null, null, null, now);
+      const days = computeIdleDaysExcludingOOO(futureStart, null, now);
       expect(days).to.equal(0);
     });
 
-    it("should subtract multiple OOO periods when oooPeriods is provided", function () {
+    it("should subtract multiple OOO periods", function () {
       const now = Date.now();
       const windowStart = now - 20 * ONE_DAY_MS;
       const oooPeriods = [
         { from: now - 18 * ONE_DAY_MS, until: now - 16 * ONE_DAY_MS }, // 2 days
         { from: now - 10 * ONE_DAY_MS, until: now - 7 * ONE_DAY_MS }, // 3 days
       ];
-      const days = computeIdleDaysExcludingOOO(windowStart, null, null, null, now, oooPeriods);
+      const days = computeIdleDaysExcludingOOO(windowStart, null, now, oooPeriods);
       expect(days).to.equal(15);
     });
 
-    it("should merge overlapping OOO periods and not double subtract", function () {
+    it("should handle overlapping OOO periods without double subtracting", function () {
       const now = Date.now();
       const windowStart = now - 20 * ONE_DAY_MS;
       const oooPeriods = [
-        { from: now - 12 * ONE_DAY_MS, until: now - 8 * ONE_DAY_MS }, // 4 days
-        { from: now - 10 * ONE_DAY_MS, until: now - 6 * ONE_DAY_MS }, // overlaps by 2 days
+        { from: now - 12 * ONE_DAY_MS, until: now - 8 * ONE_DAY_MS },
+        { from: now - 10 * ONE_DAY_MS, until: now - 6 * ONE_DAY_MS },
       ];
-      const days = computeIdleDaysExcludingOOO(windowStart, null, null, null, now, oooPeriods);
-      expect(days).to.equal(14);
+      const days = computeIdleDaysExcludingOOO(windowStart, null, now, oooPeriods);
+      expect(days).to.equal(12);
+    });
+
+    it("should handle OOO period partially outside window", function () {
+      const now = Date.now();
+      const windowStart = now - 10 * ONE_DAY_MS;
+      const oooPeriods = [{ from: now - 15 * ONE_DAY_MS, until: now - 7 * ONE_DAY_MS }];
+      const days = computeIdleDaysExcludingOOO(windowStart, null, now, oooPeriods);
+      expect(days).to.equal(7);
+    });
+
+    it("should return full idle days when OOO period is outside window", function () {
+      const now = Date.now();
+      const windowStart = now - 10 * ONE_DAY_MS;
+      const oooPeriods = [{ from: now - 20 * ONE_DAY_MS, until: now - 15 * ONE_DAY_MS }];
+      const days = computeIdleDaysExcludingOOO(windowStart, null, now, oooPeriods);
+      expect(days).to.equal(10);
     });
   });
 });
