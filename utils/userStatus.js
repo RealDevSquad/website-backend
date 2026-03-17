@@ -62,16 +62,6 @@ const resolveLastOooUntil = ({ previousState, previousUntil, nextState, fallback
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
-const normalizeOooPeriod = (period) => {
-  if (!period || typeof period !== "object") return null;
-  const from = normalizeTimestamp(period.from);
-  const until = normalizeTimestamp(period.until);
-  if (from == null || until == null || from >= until) {
-    return null;
-  }
-  return { from, until };
-};
-
 const mergeOooPeriods = (periods) => {
   if (!periods.length) return [];
   const sorted = [...periods].sort((a, b) => a.from - b.from);
@@ -103,15 +93,15 @@ const getApprovedOooPeriods = async (userId, windowStart, windowEnd) => {
     const periods = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
-      const isApproved = data.status === "APPROVED" || data.state === "APPROVED";
+      const isApproved = data.state === "APPROVED";
       if (!isApproved) return;
 
-      const period = normalizeOooPeriod({ from: data.from, until: data.until });
-      if (!period) return;
+      const from = normalizeTimestamp(data.from);
+      const until = normalizeTimestamp(data.until);
 
-      if (period.from >= windowEnd) return;
+      if (from >= until || from >= windowEnd) return;
 
-      periods.push(period);
+      periods.push({ from, until });
     });
 
     return mergeOooPeriods(periods);

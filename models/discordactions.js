@@ -417,7 +417,7 @@ const updateIdleUsersOnDiscord = async (dev) => {
       throw new Error("Idle Role does not exist");
     }
     groupIdleRoleId = groupIdleRole.role.roleid;
-    const { allUserStatus } = await getAllUserStatus({ state: userState.IDLE });
+    const { allIdleUsers } = await getAllUserStatus({ state: userState.IDLE });
     const discordUsers = await getDiscordMembers();
     const usersHavingIdleRole = [];
     const discordMemberIds = new Set();
@@ -441,9 +441,9 @@ const updateIdleUsersOnDiscord = async (dev) => {
       }
     });
 
-    if (allUserStatus) {
+    if (allIdleUsers) {
       await Promise.all(
-        allUserStatus.map(async (userStatus) => {
+        allIdleUsers.map(async (userStatus) => {
           try {
             const userData = await userModel.doc(userStatus.userId).get();
             if (!userData.exists) {
@@ -670,7 +670,7 @@ const updateIdle7dUsersOnDiscord = async (dev) => {
     }
     groupIdle7dRoleId = groupIdle7dRole.role.roleid;
 
-    const { allUserStatus } = await getAllUserStatus({ state: userState.IDLE });
+    const { allIdleUsers } = await getAllUserStatus({ state: userState.IDLE });
     const discordUsers = await getDiscordMembers();
     const usersHavingIdle7dRole = [];
 
@@ -688,24 +688,22 @@ const updateIdle7dUsersOnDiscord = async (dev) => {
       }
     });
 
-    const nowMs = Date.now();
+    const currentTime = Date.now();
 
-    if (allUserStatus) {
+    if (allIdleUsers) {
       await Promise.all(
-        allUserStatus.map(async (userStatus) => {
+        allIdleUsers.map(async (userStatus) => {
           try {
             if (!userStatus?.userId) {
               logger.warn("updateIdle7dUsersOnDiscord: skipping user status with missing userId");
               return;
             }
-            const windowStart =
-              normalizeTimestamp(userStatus.idleFrom) ?? normalizeTimestamp(userStatus.currentStatus?.from) ?? nowMs;
-            const effectiveWindowStart = Math.min(windowStart, nowMs);
-            const oooPeriods = await getApprovedOooPeriods(userStatus.userId, effectiveWindowStart, nowMs);
+            const windowStart = normalizeTimestamp(userStatus.idleFrom) ?? currentTime;
+            const oooPeriods = await getApprovedOooPeriods(userStatus.userId, windowStart, currentTime);
             const idleDays = computeIdleDaysExcludingOOO(
               userStatus.idleFrom,
               userStatus.currentStatus?.from,
-              nowMs,
+              currentTime,
               oooPeriods
             );
             if (idleDays < 7) {
