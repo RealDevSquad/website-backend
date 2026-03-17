@@ -37,7 +37,7 @@ const normalizeTimestamp = (value) => {
   return null;
 };
 
-const ONE_DAY_MS = 1000 * 60 * 60 * 24;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 const normalizeOooPeriod = (period) => {
   if (!period || typeof period !== "object") return null;
@@ -71,7 +71,11 @@ const mergeOooPeriods = (periods) => {
  */
 const getApprovedOooPeriods = async (userId, windowStart, windowEnd) => {
   try {
-    const snapshot = await requestsModel.where("requestedBy", "==", userId).where("type", "==", "OOO").get();
+    const snapshot = await requestsModel
+      .where("requestedBy", "==", userId)
+      .where("type", "==", "OOO")
+      .where("until", ">=", windowStart)
+      .get();
 
     const periods = [];
     snapshot.forEach((doc) => {
@@ -82,7 +86,7 @@ const getApprovedOooPeriods = async (userId, windowStart, windowEnd) => {
       const period = normalizeOooPeriod({ from: data.from, until: data.until });
       if (!period) return;
 
-      if (period.until <= windowStart || period.from >= windowEnd) return;
+      if (period.from >= windowEnd) return;
 
       periods.push(period);
     });

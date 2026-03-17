@@ -586,4 +586,89 @@ describe("Task Based Status Updates", function () {
       expect(userStatus002Data.currentStatus.state).to.equal(userState.ACTIVE);
     });
   });
+
+  describe("idleWindowStartedAt field lifecycle", function () {
+    let userId;
+    let superUserId;
+    let userJwt;
+    let taskArr;
+
+    beforeEach(async function () {
+      userId = await addUser(userData[6]);
+      superUserId = await addUser(userData[4]);
+      userJwt = authService.generateAuthToken({ userId });
+      taskArr = allTasks();
+      const sampleTask1 = taskArr[0];
+      sampleTask1.assignee = userId;
+      sampleTask1.createdBy = superUserId;
+      await firestore.collection("tasks").doc("taskid-idle-window-1").set(sampleTask1);
+    });
+
+    afterEach(async function () {
+      await cleanDb();
+    });
+
+    it("should set idleWindowStartedAt when user transitions ACTIVE → IDLE (task completed)", async function () {
+      const activeStatusData = generateStatusDataForState(userId, userState.ACTIVE);
+      await firestore.collection("usersStatus").doc("userStatusIdleWindow").set(activeStatusData);
+
+      const beforeMs = Date.now();
+      const res = await chai
+        .request(app)
+        .patch(`/tasks/self/taskid-idle-window-1`)
+        .set("cookie", `${cookieName}=${userJwt}`)
+        .send({ status: "COMPLETED", percentCompleted: 100 });
+
+      expect(res.body.userStatus.data.currentStatus).to.equal(userState.IDLE);
+
+      const doc = await firestore.collection("usersStatus").doc("userStatusIdleWindow").get();
+      const idleWindowStartedAt = doc.data().idleWindowStartedAt;
+      expect(idleWindowStartedAt).to.be.a("number");
+      expect(idleWindowStartedAt).to.be.at.least(beforeMs);
+    });
+
+    it("should clear idleWindowStartedAt when user transitions IDLE → ACTIVE (new task assigned)", async function () {
+      const idleStatusData = {
+        ...generateStatusDataForState(userId, userState.IDLE),
+        idleWindowStartedAt: Date.now() - 5 * 24 * 60 * 60 * 1000, // 5 days ago
+      };
+      await firestore.collection("usersStatus").doc("userStatusIdleWindow").set(idleStatusData);
+
+      const sampleTask2 = taskArr[1];
+      sampleTask2.assignee = userId;
+      sampleTask2.createdBy = superUserId;
+      await firestore.collection("tasks").doc("taskid-idle-window-2").set(sampleTask2);
+
+      const superUserJwt = authService.generateAuthToken({ userId: superUserId });
+      await chai
+        .request(app)
+        .patch(`/tasks/taskid-idle-window-1`)
+        .set("cookie", `${cookieName}=${superUserJwt}`)
+        .send({ assignee: userData[6].username });
+
+      const doc = await firestore.collection("usersStatus").doc("userStatusIdleWindow").get();
+      expect(doc.data().currentStatus.state).to.equal(userState.ACTIVE);
+      expect(doc.data().idleWindowStartedAt ?? null).to.equal(null);
+    });
+
+    it("should NOT update idleWindowStartedAt when user is already IDLE (no duplicate reset)", async function () {
+      const existingIdleWindowTs = Date.now() - 3 * 24 * 60 * 60 * 1000; // 3 days ago
+      const alreadyIdleData = {
+        ...generateStatusDataForState(userId, userState.IDLE),
+        idleWindowStartedAt: existingIdleWindowTs,
+      };
+      await firestore.collection("usersStatus").doc("userStatusIdleWindow").set(alreadyIdleData);
+
+      const res = await chai
+        .request(app)
+        .patch(`/tasks/self/taskid-idle-window-1`)
+        .set("cookie", `${cookieName}=${userJwt}`)
+        .send({ status: "COMPLETED", percentCompleted: 100 });
+
+      expect(res.body.userStatus.message).to.equal("The status is already IDLE");
+
+      const doc = await firestore.collection("usersStatus").doc("userStatusIdleWindow").get();
+      expect(doc.data().idleWindowStartedAt).to.equal(existingIdleWindowTs);
+    });
+  });
 });
