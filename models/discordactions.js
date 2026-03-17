@@ -417,7 +417,7 @@ const updateIdleUsersOnDiscord = async (dev) => {
       throw new Error("Idle Role does not exist");
     }
     groupIdleRoleId = groupIdleRole.role.roleid;
-    const { allIdleUsers } = await getAllUserStatus({ state: userState.IDLE });
+    const { allUserStatus } = await getAllUserStatus({ state: userState.IDLE });
     const discordUsers = await getDiscordMembers();
     const usersHavingIdleRole = [];
     const discordMemberIds = new Set();
@@ -441,9 +441,9 @@ const updateIdleUsersOnDiscord = async (dev) => {
       }
     });
 
-    if (allIdleUsers) {
+    if (allUserStatus) {
       await Promise.all(
-        allIdleUsers.map(async (userStatus) => {
+        allUserStatus.map(async (userStatus) => {
           try {
             const userData = await userModel.doc(userStatus.userId).get();
             if (!userData.exists) {
@@ -670,7 +670,7 @@ const updateIdle7dUsersOnDiscord = async (dev) => {
     }
     groupIdle7dRoleId = groupIdle7dRole.role.roleid;
 
-    const { allIdleUsers } = await getAllUserStatus({ state: userState.IDLE });
+    const { allUserStatus } = await getAllUserStatus({ state: userState.IDLE });
     const discordUsers = await getDiscordMembers();
     const usersHavingIdle7dRole = [];
 
@@ -689,10 +689,9 @@ const updateIdle7dUsersOnDiscord = async (dev) => {
     });
 
     const currentTime = Date.now();
-
-    if (allIdleUsers) {
+    if (allUserStatus) {
       await Promise.all(
-        allIdleUsers.map(async (userStatus) => {
+        allUserStatus.map(async (userStatus) => {
           try {
             if (!userStatus?.userId) {
               logger.warn("updateIdle7dUsersOnDiscord: skipping user status with missing userId");
