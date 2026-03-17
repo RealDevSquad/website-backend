@@ -3,6 +3,7 @@ const { userState } = require("../constants/userStatus");
 const { convertTimestampToUTCStartOrEndOfDay } = require("./time");
 const firestore = require("./firestore");
 const requestsModel = firestore.collection("requests");
+const logger = require("./logger");
 
 /**
  * Normalizes various timestamp representations into a millisecond number.
