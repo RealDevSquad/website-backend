@@ -37,6 +37,29 @@ const normalizeTimestamp = (value) => {
   return null;
 };
 
+/**
+ * Determines the timestamp to persist in the `lastOooUntil` field based on state transitions.
+ * If the user is moving out of OOO, the previous `until` is used (with fallbacks). If they are
+ * headed into OOO, the stored value is cleared.
+ *
+ * @param {Object} params
+ * @param {string|undefined} params.previousState - The state prior to the transition.
+ * @param {number|string|admin.firestore.Timestamp|null|undefined} params.previousUntil - Previous OOO `until` value.
+ * @param {string|undefined} params.nextState - The state being transitioned to.
+ * @param {number|undefined} params.fallbackTimestamp - Optional fallback timestamp to use when `previousUntil` is invalid.
+ * @returns {number|null|undefined} Millisecond timestamp when leaving OOO, null when entering OOO,
+ * or undefined when no change to `lastOooUntil` is required.
+ */
+const resolveLastOooUntil = ({ previousState, previousUntil, nextState, fallbackTimestamp }) => {
+  if (nextState === userState.OOO) {
+    return null;
+  }
+  const isLeavingOoo = previousState === userState.OOO && nextState !== userState.OOO;
+  if (!isLeavingOoo) return undefined;
+  const normalized = normalizeTimestamp(previousUntil);
+  return normalized ?? fallbackTimestamp ?? null;
+};
+
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 const normalizeOooPeriod = (period) => {
@@ -502,6 +525,7 @@ module.exports = {
   getFilteredPaginationLink,
   convertTimestampsToUTC,
   normalizeTimestamp,
+  resolveLastOooUntil,
   getApprovedOooPeriods,
   computeIdleDaysExcludingOOO,
 };
