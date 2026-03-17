@@ -721,27 +721,6 @@ const cancelOooStatus = async (userId) => {
     }
     await userStatusModel.doc(docId).update(newStatusData);
 
-    try {
-      const requestsCollection = firestore.collection("requests");
-      const oooRequests = await requestsCollection
-        .where("requestedBy", "==", userId)
-        .where("type", "==", "OOO")
-        .orderBy("createdAt", "desc")
-        .limit(1)
-        .get();
-
-      if (!oooRequests.empty) {
-        const requestDoc = oooRequests.docs[0];
-        const requestData = requestDoc.data();
-        const isApproved = requestData.status === "APPROVED" || requestData.state === "APPROVED";
-        if (isApproved) {
-          await requestsCollection.doc(requestDoc.id).update({ until: Date.now() });
-        }
-      }
-    } catch (error) {
-      logger.error(`Error updating OOO request until on cancel for user ${userId}: ${error.message}`);
-    }
-
     if (!isActive) {
       await addGroupIdleRoleToDiscordUser(userId);
     }

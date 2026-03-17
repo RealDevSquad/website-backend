@@ -648,7 +648,7 @@ describe("Task Based Status Updates", function () {
 
       const doc = await firestore.collection("usersStatus").doc("userStatusIdleWindow").get();
       expect(doc.data().currentStatus.state).to.equal(userState.ACTIVE);
-      expect(doc.data().idleFrom ?? null).to.equal(null);
+      expect(doc.data().idleFrom).to.equal(null);
     });
 
     it("should NOT update idleFrom when user is already IDLE (no duplicate reset)", async function () {
