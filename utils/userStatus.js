@@ -266,6 +266,7 @@ const updateCurrentStatusToState = async (collection, latestStatusData, newState
     data: { currentStatus = {}, ...docData },
   } = latestStatusData;
   const previousState = currentStatus.state;
+  const previousUntil = currentStatus.until;
   const currentTimeStamp = new Date().getTime();
   const updatedStatusData = {
     ...docData,
@@ -277,6 +278,15 @@ const updateCurrentStatusToState = async (collection, latestStatusData, newState
       updatedAt: currentTimeStamp,
     },
   };
+  const lastOooUntilUpdate = resolveLastOooUntil({
+    previousState,
+    previousUntil,
+    nextState: newState,
+    fallbackTimestamp: currentTimeStamp,
+  });
+  if (lastOooUntilUpdate !== undefined) {
+    updatedStatusData.lastOooUntil = lastOooUntilUpdate;
+  }
   if (newState === userState.IDLE && previousState === userState.ACTIVE) {
     updatedStatusData.idleWindowStartedAt = currentTimeStamp;
   } else if (newState === userState.ACTIVE) {
