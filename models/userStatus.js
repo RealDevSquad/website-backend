@@ -347,6 +347,7 @@ const updateAllUserStatus = async () => {
           }
           newStatusData.currentStatus = newCurrentStatus;
           newStatusData.futureStatus = newFutureStatus;
+          newStatusData.lastOooUntil = null;
           toUpdate = !toUpdate;
           summary.nonOooUsersAltered++;
         } else {
@@ -533,6 +534,7 @@ const batchUpdateUsersStatus = async (users) => {
       const newUserStatusRef = userStatusModel.doc();
       const newUserStatusData = {
         userId,
+        lastOooUntil: null,
         currentStatus: statusToUpdate,
       };
       state === userState.ACTIVE ? summary.activeUsersAltered++ : summary.idleUsersAltered++;
