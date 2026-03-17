@@ -126,7 +126,7 @@ describe("User Status Functions", function () {
       expect(days).to.equal(10);
     });
 
-    it("should fall back to currentStatusFrom when idleWindowStartedAt is missing", function () {
+    it("should fall back to currentStatusFrom when idleFrom is missing", function () {
       const currentStatusFrom = Date.now() - 8 * ONE_DAY_MS;
       const now = Date.now();
       const days = computeIdleDaysExcludingOOO(null, currentStatusFrom, now);

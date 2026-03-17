@@ -587,7 +587,7 @@ describe("Task Based Status Updates", function () {
     });
   });
 
-  describe("idleWindowStartedAt field lifecycle", function () {
+  describe("idleFrom field lifecycle", function () {
     let userId;
     let superUserId;
     let userJwt;
@@ -608,7 +608,7 @@ describe("Task Based Status Updates", function () {
       await cleanDb();
     });
 
-    it("should set idleWindowStartedAt when user transitions ACTIVE → IDLE (task completed)", async function () {
+    it("should set idleFrom when user transitions ACTIVE → IDLE (task completed)", async function () {
       const activeStatusData = generateStatusDataForState(userId, userState.ACTIVE);
       await firestore.collection("usersStatus").doc("userStatusIdleWindow").set(activeStatusData);
 
@@ -622,15 +622,15 @@ describe("Task Based Status Updates", function () {
       expect(res.body.userStatus.data.currentStatus).to.equal(userState.IDLE);
 
       const doc = await firestore.collection("usersStatus").doc("userStatusIdleWindow").get();
-      const idleWindowStartedAt = doc.data().idleWindowStartedAt;
-      expect(idleWindowStartedAt).to.be.a("number");
-      expect(idleWindowStartedAt).to.be.at.least(beforeMs);
+      const idleFrom = doc.data().idleFrom;
+      expect(idleFrom).to.be.a("number");
+      expect(idleFrom).to.be.at.least(beforeMs);
     });
 
-    it("should clear idleWindowStartedAt when user transitions IDLE → ACTIVE (new task assigned)", async function () {
+    it("should clear idleFrom when user transitions IDLE → ACTIVE (new task assigned)", async function () {
       const idleStatusData = {
         ...generateStatusDataForState(userId, userState.IDLE),
-        idleWindowStartedAt: Date.now() - 5 * 24 * 60 * 60 * 1000, // 5 days ago
+        idleFrom: Date.now() - 5 * 24 * 60 * 60 * 1000, // 5 days ago
       };
       await firestore.collection("usersStatus").doc("userStatusIdleWindow").set(idleStatusData);
 
@@ -648,14 +648,14 @@ describe("Task Based Status Updates", function () {
 
       const doc = await firestore.collection("usersStatus").doc("userStatusIdleWindow").get();
       expect(doc.data().currentStatus.state).to.equal(userState.ACTIVE);
-      expect(doc.data().idleWindowStartedAt ?? null).to.equal(null);
+      expect(doc.data().idleFrom ?? null).to.equal(null);
     });
 
-    it("should NOT update idleWindowStartedAt when user is already IDLE (no duplicate reset)", async function () {
+    it("should NOT update idleFrom when user is already IDLE (no duplicate reset)", async function () {
       const existingIdleWindowTs = Date.now() - 3 * 24 * 60 * 60 * 1000; // 3 days ago
       const alreadyIdleData = {
         ...generateStatusDataForState(userId, userState.IDLE),
-        idleWindowStartedAt: existingIdleWindowTs,
+        idleFrom: existingIdleWindowTs,
       };
       await firestore.collection("usersStatus").doc("userStatusIdleWindow").set(alreadyIdleData);
 
@@ -668,7 +668,7 @@ describe("Task Based Status Updates", function () {
       expect(res.body.userStatus.message).to.equal("The status is already IDLE");
 
       const doc = await firestore.collection("usersStatus").doc("userStatusIdleWindow").get();
-      expect(doc.data().idleWindowStartedAt).to.equal(existingIdleWindowTs);
+      expect(doc.data().idleFrom).to.equal(existingIdleWindowTs);
     });
   });
 });

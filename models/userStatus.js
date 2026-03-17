@@ -190,7 +190,7 @@ const getAllUserStatus = async (query) => {
         userId: docData.userId,
         currentStatus: docData.currentStatus,
         monthlyHours: docData.monthlyHours,
-        idleWindowStartedAt: docData.idleWindowStartedAt ?? null,
+        idleFrom: docData.idleFrom ?? null,
       };
       allUserStatus.push(currentUserStatus);
     });

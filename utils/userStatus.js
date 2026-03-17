@@ -124,14 +124,14 @@ const getApprovedOooPeriods = async (userId, windowStart, windowEnd) => {
 /**
  * Computes total idle days in [windowStart, now], excluding OOO durations.
  *
- * @param {number|string|admin.firestore.Timestamp|null|undefined} idleWindowStartedAt
+ * @param {number|string|admin.firestore.Timestamp|null|undefined} idleFrom
  * @param {number|string|admin.firestore.Timestamp|null|undefined} currentStatusFrom
  * @param {number} nowMs
  * @param {Array<{from:number,until:number}>} oooPeriods - Pre-queried and merged OOO periods
  * @returns {number}
  */
-const computeIdleDaysExcludingOOO = (idleWindowStartedAt, currentStatusFrom, nowMs, oooPeriods = []) => {
-  const rawWindowStart = normalizeTimestamp(idleWindowStartedAt) ?? normalizeTimestamp(currentStatusFrom) ?? nowMs;
+const computeIdleDaysExcludingOOO = (idleFrom, currentStatusFrom, nowMs, oooPeriods = []) => {
+  const rawWindowStart = normalizeTimestamp(idleFrom) ?? normalizeTimestamp(currentStatusFrom) ?? nowMs;
   const windowStart = Math.min(rawWindowStart, nowMs);
   const windowEnd = nowMs;
   let totalMs = Math.max(0, windowEnd - windowStart);
@@ -288,9 +288,9 @@ const updateCurrentStatusToState = async (collection, latestStatusData, newState
     updatedStatusData.lastOooUntil = lastOooUntilUpdate;
   }
   if (newState === userState.IDLE && previousState === userState.ACTIVE) {
-    updatedStatusData.idleWindowStartedAt = currentTimeStamp;
+    updatedStatusData.idleFrom = currentTimeStamp;
   } else if (newState === userState.ACTIVE) {
-    updatedStatusData.idleWindowStartedAt = null;
+    updatedStatusData.idleFrom = null;
   }
   try {
     await collection.doc(id).update(updatedStatusData);
@@ -384,7 +384,7 @@ const createUserStatusWithState = async (userId, collection, state) => {
       },
     };
     if (state === userState.IDLE) {
-      payload.idleWindowStartedAt = currentTimeStamp;
+      payload.idleFrom = currentTimeStamp;
     }
     await collection.add(payload);
   } catch (err) {

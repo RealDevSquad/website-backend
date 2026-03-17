@@ -699,13 +699,11 @@ const updateIdle7dUsersOnDiscord = async (dev) => {
               return;
             }
             const windowStart =
-              normalizeTimestamp(userStatus.idleWindowStartedAt) ??
-              normalizeTimestamp(userStatus.currentStatus?.from) ??
-              nowMs;
+              normalizeTimestamp(userStatus.idleFrom) ?? normalizeTimestamp(userStatus.currentStatus?.from) ?? nowMs;
             const effectiveWindowStart = Math.min(windowStart, nowMs);
             const oooPeriods = await getApprovedOooPeriods(userStatus.userId, effectiveWindowStart, nowMs);
             const idleDays = computeIdleDaysExcludingOOO(
-              userStatus.idleWindowStartedAt,
+              userStatus.idleFrom,
               userStatus.currentStatus?.from,
               nowMs,
               oooPeriods
