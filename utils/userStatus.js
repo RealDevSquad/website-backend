@@ -1,5 +1,6 @@
 const { NotFound } = require("http-errors");
 const { userState } = require("../constants/userStatus");
+const { REQUEST_STATE } = require("../constants/requests");
 const { convertTimestampToUTCStartOrEndOfDay } = require("./time");
 const firestore = require("./firestore");
 const requestsModel = firestore.collection("requests");
@@ -87,14 +88,13 @@ const getApprovedOooPeriods = async (userId, windowStart, windowEnd) => {
     const snapshot = await requestsModel
       .where("requestedBy", "==", userId)
       .where("type", "==", "OOO")
+      .where("state", "==", REQUEST_STATE.APPROVED)
       .where("until", ">=", windowStart)
       .get();
 
     const periods = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
-      const isApproved = data.state === "APPROVED";
-      if (!isApproved) return;
 
       const from = normalizeTimestamp(data.from);
       const until = normalizeTimestamp(data.until);
