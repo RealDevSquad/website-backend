@@ -297,10 +297,13 @@ const updateAllUserStatus = async () => {
     nonOooUsersUnaltered: 0,
   };
   try {
-    const userStatusDocs = await userStatusModel.where("futureStatus.state", "in", ["ACTIVE", "IDLE", "OOO"]).get();
-    summary.usersCount = userStatusDocs._size;
+    const today = Date.now();
+    const userStatusDocs = await userStatusModel
+      .where("futureStatus.state", "in", ["ACTIVE", "IDLE", "OOO"])
+      .where("futureStatus.from", "<=", today)
+      .get();
+    summary.usersCount = userStatusDocs.size;
     const batch = firestore.batch();
-    const today = new Date().getTime();
     for (const document of userStatusDocs.docs) {
       const doc = document.data();
       const docRef = document.ref;
