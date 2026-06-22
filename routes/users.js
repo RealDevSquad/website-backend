@@ -28,7 +28,15 @@ router.get("/isDeveloper", authenticate, users.isDeveloper);
 router.get("/isUsernameAvailable/:username", authenticate, users.getUsernameAvailabilty);
 router.get("/username", authenticate, userValidator.validateGenerateUsernameQuery, users.generateUsername);
 router.get("/chaincode", authenticate, users.generateChaincode);
-router.get("/search", userValidator.validateUserQueryParams, users.filterUsers);
+// TODO: Have a discussion, if this '/search' needs to be open or protected.
+// For now making it protected and super_user only to sort the high firestore read issues, for usersStatus collection
+router.get(
+  "/search",
+  authenticate,
+  authorizeRoles([SUPERUSER]),
+  userValidator.validateUserQueryParams,
+  users.filterUsers
+);
 router.get("/identity-stats", authenticate, authorizeRoles([SUPERUSER]), users.getIdentityStats);
 router.patch(
   "/:userId/update-nickname",
