@@ -21,7 +21,7 @@ const { authorizeAndAuthenticate } = require("../middlewares/authorizeUsersAndSe
 const ROLES = require("../constants/roles");
 const { Services } = require("../constants/bot");
 
-// TODO: Have a discussion, if this '/search' needs to be open or protected.
+// TODO: Have a discussion, if this 'users/status' needs to be open or protected.
 // For now making it protected and super_user only to sort the high firestore read issues, for usersStatus collection
 router.get("/", authenticate, authorizeRoles([SUPERUSER]), validateGetQueryParams, getUserStatusControllers);
 router.get("/self", authenticate, getUserStatus);

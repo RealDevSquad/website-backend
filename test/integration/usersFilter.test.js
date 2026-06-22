@@ -132,6 +132,20 @@ describe("Filter Users", function () {
 
   // eslint-disable-next-line mocha/no-skipped-tests
   describe("GET /users/search", function () {
+    it("Should not be accessed by unauthorized user", function (done) {
+      chai
+        .request(app)
+        .get("/users/search")
+        .query({ state: "OOO" })
+        .end((err, res) => {
+          if (err) {
+            return done(err);
+          }
+          expect(res).to.have.status(401);
+          return done();
+        });
+    });
+
     it("Should search users based on state", function (done) {
       chai
         .request(app)

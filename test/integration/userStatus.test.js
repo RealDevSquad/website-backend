@@ -44,6 +44,19 @@ describe("UserStatus", function () {
   });
 
   describe("GET /users/status", function () {
+    it("Should not be accessed by unauthorized user", function (done) {
+      chai
+        .request(app)
+        .get("/users/status")
+        .end((err, res) => {
+          if (err) {
+            return done(err);
+          }
+          expect(res).to.have.status(401);
+          return done();
+        });
+    });
+
     it("Should get all the userStatus in system", function (done) {
       chai
         .request(app)
