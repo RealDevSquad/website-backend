@@ -1,0 +1,73 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "usersStatus",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "currentStatus.state",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "currentStatus.from",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "usersStatus",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "currentStatus.state",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "usersStatus",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "futureStatus.state",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "usersStatus",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "currentStatus.updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "usersStatus",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "futureStatus.updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "usersStatus",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "currentStatus.state",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
