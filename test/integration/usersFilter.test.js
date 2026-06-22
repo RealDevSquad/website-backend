@@ -38,7 +38,8 @@ describe("Filter Users", function () {
   before(async function () {
     const updatedAtDate = Date.now();
     const untilDate = updatedAtDate + 16 * 24 * 60 * 60 * 1000;
-    userId = await addUser();
+    const superUser = userData[4];
+    userId = await addUser(superUser);
     archivedUser = await addUser(userData[5]);
     jwt = authService.generateAuthToken({ userId });
     oooUser = await addUser(userData[0]);
@@ -180,6 +181,7 @@ describe("Filter Users", function () {
       chai
         .request(app)
         .get("/users/search")
+        .set("cookie", `${cookieName}=${jwt}`)
         .query({ dev: true, page: 1, size: 10 })
         // eslint-disable-next-line consistent-return
         .end((err, res) => {
@@ -211,6 +213,7 @@ describe("Filter Users", function () {
       chai
         .request(app)
         .get("/users/search")
+        .set("cookie", `${cookieName}=${jwt}`)
         .query({ state: ["OOO", "IDLE", "ONBOARDING"] })
         // eslint-disable-next-line consistent-return
         .end((err, res) => {

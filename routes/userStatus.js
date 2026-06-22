@@ -21,7 +21,9 @@ const { authorizeAndAuthenticate } = require("../middlewares/authorizeUsersAndSe
 const ROLES = require("../constants/roles");
 const { Services } = require("../constants/bot");
 
-router.get("/", validateGetQueryParams, getUserStatusControllers);
+// TODO: Have a discussion, if this '/search' needs to be open or protected.
+// For now making it protected and super_user only to sort the high firestore read issues, for usersStatus collection
+router.get("/", authenticate, authorizeRoles([SUPERUSER]), validateGetQueryParams, getUserStatusControllers);
 router.get("/self", authenticate, getUserStatus);
 router.get("/:userId", getUserStatus);
 router.patch("/self", authenticate, validateUserStatus, updateUserStatusController); // this route is being deprecated, please use /users/status/:userId PATCH endpoint instead.

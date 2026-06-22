@@ -48,7 +48,7 @@ describe("UserStatus", function () {
       chai
         .request(app)
         .get("/users/status")
-        .set("cookie", `${cookieName}=${jwt}`)
+        .set("cookie", `${cookieName}=${superUserAuthToken}`)
         .end((err, res) => {
           if (err) {
             return done(err);
@@ -73,7 +73,10 @@ describe("UserStatus", function () {
       await updateUserStatus(nonArchivedIdleUserId, generateUserStatusData("IDLE", new Date(), new Date()));
       const nonArchivedActiveUserId = await addUser(userData[8]);
       await updateUserStatus(nonArchivedActiveUserId, generateUserStatusData("ACTIVE", new Date(), new Date()));
-      const response = await chai.request(app).get("/users/status?state=IDLE");
+      const response = await chai
+        .request(app)
+        .get("/users/status?state=IDLE")
+        .set("cookie", `${cookieName}=${superUserAuthToken}`);
       expect(response).to.have.status(200);
       expect(response.body.message).to.equal("All User Status found successfully.");
       expect(response.body.totalUserStatus).to.be.a("number");
