@@ -628,7 +628,7 @@ const getRdsUserInfoByGitHubUsername = async (githubUsername) => {
  * @return {Promise<Array>} - Array of user documents that match the filter criteria
  */
 
-const getUsersBasedOnFilter = async (query) => {
+const getUsersBasedOnFilter = async (query, skip, limit) => {
   const allQueryKeys = Object.keys(query);
   const doesTagQueryExist = arraysHaveCommonItem(ITEM_TAG, allQueryKeys);
   const doesStateQueryExist = arraysHaveCommonItem(USER_STATE, allQueryKeys);
@@ -672,7 +672,12 @@ const getUsersBasedOnFilter = async (query) => {
 
   if (finalItems.length) {
     finalItems = [...new Set(finalItems)];
-    const userRefs = finalItems.map((itemId) => userModel.doc(itemId));
+    // Slicing finalItems in-memory before querying users collection if skip/limit are passed
+    let paginatedFinalItems = finalItems;
+    if (typeof skip === "number" && typeof limit === "number") {
+      paginatedFinalItems = finalItems.slice(skip, skip + limit);
+    }
+    const userRefs = paginatedFinalItems.map((itemId) => userModel.doc(itemId));
     const userDocs = (await firestore.getAll(...userRefs)).map((doc) => ({ id: doc.id, ...doc.data() }));
     const filteredUserDocs = userDocs.filter((doc) => !doc.roles?.archived);
     if (query.time && query.state === "ONBOARDING") {
@@ -681,8 +686,10 @@ const getUsersBasedOnFilter = async (query) => {
         stateItems,
         query.time
       );
+      fetchUsersWithOnBoardingState.totalCount = finalItems.length;
       return fetchUsersWithOnBoardingState;
     }
+    filteredUserDocs.totalCount = finalItems.length;
     return filteredUserDocs;
   }
 
@@ -698,11 +705,16 @@ const getUsersBasedOnFilter = async (query) => {
       });
     });
 
-    if (roleQuery === ROLES.ARCHIVED) {
-      return filteredUsers;
+    let resultUsers = filteredUsers;
+    if (roleQuery !== ROLES.ARCHIVED) {
+      resultUsers = filteredUsers.filter((user) => !user.roles?.archived);
     }
 
-    return filteredUsers.filter((user) => !user.roles?.archived);
+    const paginatedUsers =
+      typeof skip === "number" && typeof limit === "number" ? resultUsers.slice(skip, skip + limit) : resultUsers;
+
+    paginatedUsers.totalCount = resultUsers.length;
+    return paginatedUsers;
   }
   if (verifiedQuery === "true") {
     const filteredUsers = [];
@@ -714,10 +726,17 @@ const getUsersBasedOnFilter = async (query) => {
       });
     });
 
-    return filteredUsers.filter((user) => !user.roles?.archived);
+    const resultUsers = filteredUsers.filter((user) => !user.roles?.archived);
+    const paginatedUsers =
+      typeof skip === "number" && typeof limit === "number" ? resultUsers.slice(skip, skip + limit) : resultUsers;
+
+    paginatedUsers.totalCount = resultUsers.length;
+    return paginatedUsers;
   }
 
-  return [];
+  const emptyArray = [];
+  emptyArray.totalCount = 0;
+  return emptyArray;
 };
 
 const getUsersWithOnboardingStateInRange = async (filteredUserDocs, stateItems, time) => {

@@ -77,18 +77,26 @@ const getAllUserStatus = async (req, res) => {
   try {
     const { allUserStatus } = await userStatusModel.getAllUserStatus(req.query);
     const activeUsers = [];
-    if (allUserStatus) {
-      const allUsersStatusFetchPromises = allUserStatus.map(async (status) => {
-        //  fetching users from users collection with the help of userID in userStatus collection
-        const result = await dataAccess.retrieveUsers({ id: status.userId });
-        if (!result.user?.roles?.archived) {
-          status.full_name = `${result.user.first_name} ${result.user.last_name}`;
-          status.picture = result.user.picture;
-          status.username = result.user.username;
+    if (allUserStatus && allUserStatus.length > 0) {
+      const userIds = allUserStatus.map((status) => status.userId).filter(Boolean);
+      const usersList = await dataAccess.retrieveUsers({ userIds });
+      const usersMap = {};
+      if (Array.isArray(usersList)) {
+        usersList.forEach((user) => {
+          if (user && user.id) {
+            usersMap[user.id] = user;
+          }
+        });
+      }
+      allUserStatus.forEach((status) => {
+        const user = usersMap[status.userId];
+        if (user && !user.roles?.archived) {
+          status.full_name = `${user.first_name} ${user.last_name}`;
+          status.picture = user.picture;
+          status.username = user.username;
           activeUsers.push(status);
         }
       });
-      await Promise.all(allUsersStatusFetchPromises);
     }
     return res.json({
       message: "All User Status found successfully.",

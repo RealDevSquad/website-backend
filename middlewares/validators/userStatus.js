@@ -85,6 +85,8 @@ const validateGetQueryParams = async (req, res, next) => {
         .trim()
         .valid(userState.IDLE, userState.ACTIVE, userState.OOO, userState.ONBOARDING)
         .error(new Error(`Invalid State. State must be either IDLE, ACTIVE, OOO, or ONBOARDING`)),
+      page: Joi.number().integer().min(0).error(new Error(`page must be a non-negative integer.`)),
+      size: Joi.number().integer().min(1).max(1000).error(new Error(`size must be a number between 1 and 1000.`)),
     })
     .messages({
       "object.unknown": "Invalid query param provided.",

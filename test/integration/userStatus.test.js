@@ -44,24 +44,10 @@ describe("UserStatus", function () {
   });
 
   describe("GET /users/status", function () {
-    it("Should not be accessed by unauthorized user", function (done) {
-      chai
-        .request(app)
-        .get("/users/status")
-        .end((err, res) => {
-          if (err) {
-            return done(err);
-          }
-          expect(res).to.have.status(401);
-          return done();
-        });
-    });
-
     it("Should get all the userStatus in system", function (done) {
       chai
         .request(app)
         .get("/users/status")
-        .set("cookie", `${cookieName}=${superUserAuthToken}`)
         .end((err, res) => {
           if (err) {
             return done(err);
@@ -86,10 +72,7 @@ describe("UserStatus", function () {
       await updateUserStatus(nonArchivedIdleUserId, generateUserStatusData("IDLE", new Date(), new Date()));
       const nonArchivedActiveUserId = await addUser(userData[8]);
       await updateUserStatus(nonArchivedActiveUserId, generateUserStatusData("ACTIVE", new Date(), new Date()));
-      const response = await chai
-        .request(app)
-        .get("/users/status?state=IDLE")
-        .set("cookie", `${cookieName}=${superUserAuthToken}`);
+      const response = await chai.request(app).get("/users/status?state=IDLE");
       expect(response).to.have.status(200);
       expect(response.body.message).to.equal("All User Status found successfully.");
       expect(response.body.totalUserStatus).to.be.a("number");

@@ -171,18 +171,23 @@ const getUserStatus = async (userId) => {
 /**
  * @returns {Promise<userStatusModel|Array>} : returns an array of all the userStatus
  */
-const getAllUserStatus = async (query) => {
+const getAllUserStatus = async (query = {}) => {
   try {
     const allUserStatus = [];
-    let data;
-    if (!query.state) {
-      data = await userStatusModel.get();
-    } else {
-      data = await userStatusModel
-        .where("currentStatus.state", "==", query.state)
-        .orderBy("currentStatus.from", "asc")
-        .get();
+    const size = parseInt(query.size);
+    const page = parseInt(query.page);
+    let dbQuery = userStatusModel;
+
+    if (query.state) {
+      dbQuery = dbQuery.where("currentStatus.state", "==", query.state).orderBy("currentStatus.from", "asc");
     }
+
+    if (!isNaN(size) && !isNaN(page)) {
+      const offsetValue = size * page;
+      dbQuery = dbQuery.offset(offsetValue).limit(size);
+    }
+
+    const data = await dbQuery.get();
     data.forEach((doc) => {
       const docData = doc.data();
       const currentUserStatus = {
