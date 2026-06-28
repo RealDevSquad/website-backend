@@ -566,7 +566,6 @@ describe("Users", function () {
         .get("/users")
         .query({
           size: 1,
-          page: 0,
         })
         .end((err, res) => {
           if (err) {
@@ -591,7 +590,6 @@ describe("Users", function () {
         .get("/users")
         .query({
           size: -1,
-          page: -1,
         })
         .end((err, res) => {
           if (err) {
@@ -664,33 +662,17 @@ describe("Users", function () {
         });
     });
 
-    it("Should return 400 when both page and next passed as query param", function (done) {
+    it("Should return 400 when page is passed as a query param", function (done) {
       chai
         .request(app)
-        .get(`/users?next=${userId}&page=1&size=2`)
+        .get(`/users?page=1&size=2`)
         .end((err, res) => {
           if (err) {
             return done(err);
           }
 
           expect(res).to.have.status(400);
-          expect(res.body.message).to.equal("Both page and next can't be passed");
-
-          return done();
-        });
-    });
-
-    it("Should return 400 when both page and prev passed as query param", function (done) {
-      chai
-        .request(app)
-        .get(`/users?page=1&prev=${userId}&size=2`)
-        .end((err, res) => {
-          if (err) {
-            return done(err);
-          }
-
-          expect(res).to.have.status(400);
-          expect(res.body.message).to.equal("Both page and prev can't be passed");
+          expect(res.body.message).to.equal('"page" is not allowed');
 
           return done();
         });
@@ -715,28 +697,6 @@ describe("Users", function () {
           expect(res.body.links.next).includes("size");
           expect(res.body.links.prev).includes("search");
           expect(res.body.links.prev).includes("size");
-
-          return done();
-        });
-    });
-
-    it("Should not have page param in the response links if passed by the request", function (done) {
-      chai
-        .request(app)
-        .get(`/users?page=1&size=2`)
-        .end((err, res) => {
-          if (err) {
-            return done(err);
-          }
-
-          expect(res).to.have.status(200);
-          expect(res.body).to.be.a("object");
-          expect(res.body.message).to.equal("Users returned successfully!");
-          expect(res.body).to.have.property("links");
-          expect(res.body.links).to.have.property("next");
-          expect(res.body.links).to.have.property("prev");
-          expect(res.body.links.next).to.not.includes("page");
-          expect(res.body.links.prev).to.not.includes("page");
 
           return done();
         });

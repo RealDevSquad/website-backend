@@ -1,5 +1,6 @@
 const { Forbidden, NotFound } = require("http-errors");
 const { getUserIdBasedOnRoute } = require("../utils/userStatus");
+const { getPaginationLink } = require("../utils/users");
 const { INTERNAL_SERVER_ERROR } = require("../constants/errorMessages");
 const dataAccess = require("../services/dataAccessLayer");
 const userStatusModel = require("../models/userStatus");
@@ -75,7 +76,7 @@ const getUserStatus = async (req, res) => {
  */
 const getAllUserStatus = async (req, res) => {
   try {
-    const { allUserStatus } = await userStatusModel.getAllUserStatus(req.query);
+    const { allUserStatus, nextId, prevId } = await userStatusModel.getAllUserStatus(req.query);
     const activeUsers = [];
     if (allUserStatus && allUserStatus.length > 0) {
       const userIds = allUserStatus.map((status) => status.userId).filter(Boolean);
@@ -102,6 +103,10 @@ const getAllUserStatus = async (req, res) => {
       message: "All User Status found successfully.",
       totalUserStatus: activeUsers.length,
       allUserStatus: activeUsers,
+      links: {
+        next: nextId ? getPaginationLink(req.query, "next", nextId, "/users/status") : "",
+        prev: prevId ? getPaginationLink(req.query, "prev", prevId, "/users/status") : "",
+      },
     });
   } catch (err) {
     logger.error(`Error while fetching all the User Status: ${err}`);

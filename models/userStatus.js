@@ -174,17 +174,24 @@ const getUserStatus = async (userId) => {
 const getAllUserStatus = async (query = {}) => {
   try {
     const allUserStatus = [];
-    const size = parseInt(query.size);
-    const page = parseInt(query.page);
+    const size = parseInt(query.size) || 100;
+    const doc = (query.next || query.prev) && (await userStatusModel.doc(query.next || query.prev).get());
     let dbQuery = userStatusModel;
 
     if (query.state) {
       dbQuery = dbQuery.where("currentStatus.state", "==", query.state).orderBy("currentStatus.from", "asc");
     }
 
-    if (!isNaN(size) && !isNaN(page)) {
-      const offsetValue = size * page;
-      dbQuery = dbQuery.offset(offsetValue).limit(size);
+    if (query.prev) {
+      dbQuery = dbQuery.limitToLast(size);
+    } else {
+      dbQuery = dbQuery.limit(size);
+    }
+
+    if (query.next) {
+      dbQuery = dbQuery.startAfter(doc);
+    } else if (query.prev) {
+      dbQuery = dbQuery.endBefore(doc);
     }
 
     const data = await dbQuery.get();
@@ -199,7 +206,15 @@ const getAllUserStatus = async (query = {}) => {
       };
       allUserStatus.push(currentUserStatus);
     });
-    return { allUserStatus };
+
+    const firstDoc = data.docs[0];
+    const lastDoc = data.docs[data.docs.length - 1];
+
+    return {
+      allUserStatus,
+      nextId: lastDoc?.id || "",
+      prevId: firstDoc?.id || "",
+    };
   } catch (error) {
     logger.error(`error in fetching the User Status of all Users. ${error}`);
     throw error;

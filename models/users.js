@@ -298,11 +298,7 @@ const fetchPaginatedUsers = async (query) => {
         dbQuery = dbQuery.startAt(searchValue).endAt(searchValue + "\uf8ff");
         compositeQuery = compositeQuery.map((query) => query.startAt(searchValue).endAt(searchValue + "\uf8ff"));
       }
-      if (query.page) {
-        const offsetValue = size * parseInt(query.page);
-        dbQuery = dbQuery.offset(offsetValue);
-        compositeQuery = compositeQuery.map((query) => query.offset(offsetValue));
-      } else if (query.next) {
+      if (query.next) {
         dbQuery = dbQuery.startAfter(doc);
         compositeQuery = compositeQuery.map((query) => query.startAfter(doc));
       } else if (query.prev) {

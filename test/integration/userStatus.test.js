@@ -80,6 +80,37 @@ describe("UserStatus", function () {
       expect(response.body.allUserStatus).to.be.a("array");
       expect(response.body.allUserStatus.length).to.equal(1);
     });
+
+    it("Should return pagination links and support cursor pagination", async function () {
+      const user1 = await addUser(userData[0]);
+      await updateUserStatus(user1, generateUserStatusData("ACTIVE", new Date(), new Date()));
+      const user2 = await addUser(userData[1]);
+      await updateUserStatus(user2, generateUserStatusData("ACTIVE", new Date(), new Date()));
+
+      const response = await chai.request(app).get("/users/status?size=1");
+      expect(response).to.have.status(200);
+      expect(response.body).to.be.a("object");
+      expect(response.body.allUserStatus).to.be.a("array");
+      expect(response.body.allUserStatus.length).to.equal(1);
+      expect(response.body).to.have.property("links");
+      expect(response.body.links).to.have.property("next");
+      expect(response.body.links).to.have.property("prev");
+
+      const nextLink = response.body.links.next;
+      expect(nextLink).to.contain("/users/status");
+      expect(nextLink).to.contain("next=");
+
+      const nextPageResponse = await chai.request(app).get(nextLink);
+      expect(nextPageResponse).to.have.status(200);
+      expect(nextPageResponse.body.allUserStatus.length).to.equal(1);
+      expect(nextPageResponse.body.links.prev).to.contain("prev=");
+    });
+
+    it("Should return 400 when both next and prev are passed", async function () {
+      const response = await chai.request(app).get("/users/status?next=abc&prev=xyz");
+      expect(response).to.have.status(400);
+      expect(response.body.message).to.equal("Both prev and next can't be passed");
+    });
   });
 
   describe("GET /users/status/:userid", function () {

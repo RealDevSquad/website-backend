@@ -85,7 +85,19 @@ const validateGetQueryParams = async (req, res, next) => {
         .trim()
         .valid(userState.IDLE, userState.ACTIVE, userState.OOO, userState.ONBOARDING)
         .error(new Error(`Invalid State. State must be either IDLE, ACTIVE, OOO, or ONBOARDING`)),
-      page: Joi.number().integer().min(0).error(new Error(`page must be a non-negative integer.`)),
+      next: Joi.string().trim().optional().messages({
+        "string.empty": "next value cannot be empty",
+      }),
+      prev: Joi.string()
+        .trim()
+        .optional()
+        .when("next", {
+          is: Joi.exist(),
+          then: Joi.custom((_, helpers) => helpers.message("Both prev and next can't be passed")),
+        })
+        .messages({
+          "string.empty": "prev value cannot be empty",
+        }),
       size: Joi.number().integer().min(1).max(1000).error(new Error(`size must be a number between 1 and 1000.`)),
     })
     .messages({

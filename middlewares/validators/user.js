@@ -151,14 +151,6 @@ async function getUsers(req, res, next) {
           "string.empty": "size must contain value in range 1-100",
           "string.pattern.base": "size must be in range 1-100",
         }),
-      page: joi
-        .string()
-        .optional()
-        .pattern(/^0$|^[1-9]\d*$/)
-        .messages({
-          "string.empty": "page must contain a positive number or zero",
-          "string.pattern.base": "page value either be a positive number or zero",
-        }),
       search: joi.string().optional().messages({
         "string.empty": "search value must not be empty",
       }),
@@ -168,16 +160,9 @@ async function getUsers(req, res, next) {
       discordId: joi.string().optional().messages({
         "string.empty": "discord id value must not be empty",
       }),
-      next: joi
-        .string()
-        .optional()
-        .when("page", {
-          is: joi.exist(),
-          then: joi.custom((_, helpers) => helpers.message("Both page and next can't be passed")),
-        })
-        .messages({
-          "string.empty": "next value cannot be empty",
-        }),
+      next: joi.string().optional().messages({
+        "string.empty": "next value cannot be empty",
+      }),
       prev: joi
         .string()
         .optional()
@@ -185,12 +170,6 @@ async function getUsers(req, res, next) {
           is: joi.exist(),
           then: joi.custom((_, helpers) => helpers.message("Both prev and next can't be passed")),
         })
-        .concat(
-          joi.string().when("page", {
-            is: joi.exist(),
-            then: joi.custom((_, helpers) => helpers.message("Both page and prev can't be passed")),
-          })
-        )
         .messages({
           "string.empty": "prev value cannot be empty",
         }),
