@@ -1,5 +1,6 @@
 const { Forbidden, NotFound } = require("http-errors");
 const { getUserIdBasedOnRoute } = require("../utils/userStatus");
+const { getPaginationLink } = require("../utils/users");
 const { INTERNAL_SERVER_ERROR } = require("../constants/errorMessages");
 const dataAccess = require("../services/dataAccessLayer");
 const userStatusModel = require("../models/userStatus");
@@ -75,25 +76,37 @@ const getUserStatus = async (req, res) => {
  */
 const getAllUserStatus = async (req, res) => {
   try {
-    const { allUserStatus } = await userStatusModel.getAllUserStatus(req.query);
+    const { allUserStatus, nextId, prevId } = await userStatusModel.getAllUserStatus(req.query);
     const activeUsers = [];
-    if (allUserStatus) {
-      const allUsersStatusFetchPromises = allUserStatus.map(async (status) => {
-        //  fetching users from users collection with the help of userID in userStatus collection
-        const result = await dataAccess.retrieveUsers({ id: status.userId });
-        if (!result.user?.roles?.archived) {
-          status.full_name = `${result.user.first_name} ${result.user.last_name}`;
-          status.picture = result.user.picture;
-          status.username = result.user.username;
+    if (allUserStatus && allUserStatus.length > 0) {
+      const userIds = allUserStatus.map((status) => status.userId).filter(Boolean);
+      const usersList = await dataAccess.retrieveUsers({ userIds });
+      const usersMap = {};
+      if (Array.isArray(usersList)) {
+        usersList.forEach((user) => {
+          if (user && user.id) {
+            usersMap[user.id] = user;
+          }
+        });
+      }
+      allUserStatus.forEach((status) => {
+        const user = usersMap[status.userId];
+        if (user && !user.roles?.archived) {
+          status.full_name = `${user.first_name} ${user.last_name}`;
+          status.picture = user.picture;
+          status.username = user.username;
           activeUsers.push(status);
         }
       });
-      await Promise.all(allUsersStatusFetchPromises);
     }
     return res.json({
       message: "All User Status found successfully.",
       totalUserStatus: activeUsers.length,
       allUserStatus: activeUsers,
+      links: {
+        next: nextId ? getPaginationLink(req.query, "next", nextId, "/users/status") : "",
+        prev: prevId ? getPaginationLink(req.query, "prev", prevId, "/users/status") : "",
+      },
     });
   } catch (err) {
     logger.error(`Error while fetching all the User Status: ${err}`);

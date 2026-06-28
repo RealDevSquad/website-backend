@@ -984,10 +984,10 @@ const filterUsers = async (req, res) => {
     const { page, size } = req.query;
     const pageNumber = parseInt(page) || 0;
     const limitNumber = parseInt(size) || 100;
-    const skip = (pageNumber - 1) * limitNumber;
+    const skip = pageNumber * limitNumber;
 
     const users = await dataAccess.retreiveFilteredUsers(req.query, skip, limitNumber);
-    const totalCount = users.length;
+    const totalCount = users.totalCount;
     const totalPages = Math.ceil(totalCount / limitNumber);
 
     const paginationLinks = calculatePagination(pageNumber, totalPages, req.query, limitNumber);

@@ -171,18 +171,30 @@ const getUserStatus = async (userId) => {
 /**
  * @returns {Promise<userStatusModel|Array>} : returns an array of all the userStatus
  */
-const getAllUserStatus = async (query) => {
+const getAllUserStatus = async (query = {}) => {
   try {
     const allUserStatus = [];
-    let data;
-    if (!query.state) {
-      data = await userStatusModel.get();
-    } else {
-      data = await userStatusModel
-        .where("currentStatus.state", "==", query.state)
-        .orderBy("currentStatus.from", "asc")
-        .get();
+    const size = parseInt(query.size) || 100;
+    const doc = (query.next || query.prev) && (await userStatusModel.doc(query.next || query.prev).get());
+    let dbQuery = userStatusModel;
+
+    if (query.state) {
+      dbQuery = dbQuery.where("currentStatus.state", "==", query.state).orderBy("currentStatus.from", "asc");
     }
+
+    if (query.prev) {
+      dbQuery = dbQuery.limitToLast(size);
+    } else {
+      dbQuery = dbQuery.limit(size);
+    }
+
+    if (query.next) {
+      dbQuery = dbQuery.startAfter(doc);
+    } else if (query.prev) {
+      dbQuery = dbQuery.endBefore(doc);
+    }
+
+    const data = await dbQuery.get();
     data.forEach((doc) => {
       const docData = doc.data();
       const currentUserStatus = {
@@ -194,7 +206,15 @@ const getAllUserStatus = async (query) => {
       };
       allUserStatus.push(currentUserStatus);
     });
-    return { allUserStatus };
+
+    const firstDoc = data.docs[0];
+    const lastDoc = data.docs[data.docs.length - 1];
+
+    return {
+      allUserStatus,
+      nextId: lastDoc?.id || "",
+      prevId: firstDoc?.id || "",
+    };
   } catch (error) {
     logger.error(`error in fetching the User Status of all Users. ${error}`);
     throw error;

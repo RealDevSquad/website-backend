@@ -77,8 +77,8 @@ const retrieveDiscordUsers = async (level = ACCESS_LEVEL.PUBLIC, role = null) =>
   return usersData;
 };
 
-const retreiveFilteredUsers = async (query) => {
-  const users = await userQuery.getUsersBasedOnFilter(query);
+const retreiveFilteredUsers = async (query, skip, limit) => {
+  const users = await userQuery.getUsersBasedOnFilter(query, skip, limit);
   users.forEach((userdata) => {
     removeSensitiveInfo(userdata);
   });
