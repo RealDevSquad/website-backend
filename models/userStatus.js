@@ -315,24 +315,20 @@ const updateAllUserStatus = async () => {
       const currentState = currentStatus?.state;
       const currentUntil = currentStatus?.until;
       if (futureState === "ACTIVE" || futureState === "IDLE") {
-        if (today >= futureStatus.from) {
-          // OOO period is over and we need to update their current status
-          newStatusData.currentStatus = { ...futureStatus, until: "", updatedAt: today };
-          delete newStatusData.futureStatus;
-          const lastOooUntilUpdate = resolveLastOooUntil({
-            previousState: currentState,
-            previousUntil: currentUntil,
-            nextState: futureState,
-            fallbackTimestamp: today,
-          });
-          if (lastOooUntilUpdate !== undefined) {
-            newStatusData.lastOooUntil = lastOooUntilUpdate;
-          }
-          toUpdate = !toUpdate;
-          summary.oooUsersAltered++;
-        } else {
-          summary.oooUsersUnaltered++;
+        // OOO period is over and we need to update their current status
+        newStatusData.currentStatus = { ...futureStatus, until: "", updatedAt: today };
+        delete newStatusData.futureStatus;
+        const lastOooUntilUpdate = resolveLastOooUntil({
+          previousState: currentState,
+          previousUntil: currentUntil,
+          nextState: futureState,
+          fallbackTimestamp: today,
+        });
+        if (lastOooUntilUpdate !== undefined) {
+          newStatusData.lastOooUntil = lastOooUntilUpdate;
         }
+        toUpdate = !toUpdate;
+        summary.oooUsersAltered++;
       } else {
         // futureState is OOO
         if (today > futureStatus.until) {
@@ -340,7 +336,7 @@ const updateAllUserStatus = async () => {
           delete newStatusData.futureStatus;
           toUpdate = !toUpdate;
           summary.nonOooUsersAltered++;
-        } else if (today <= doc.futureStatus.until && today >= doc.futureStatus.from) {
+        } else {
           // the current date i.e today lies in between the from and until so we need to swap the status
           let newCurrentStatus = {};
           let newFutureStatus = {};
@@ -353,8 +349,6 @@ const updateAllUserStatus = async () => {
           newStatusData.lastOooUntil = null;
           toUpdate = !toUpdate;
           summary.nonOooUsersAltered++;
-        } else {
-          summary.nonOooUsersUnaltered++;
         }
       }
       if (toUpdate) {
