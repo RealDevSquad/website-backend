@@ -97,6 +97,17 @@ describe("UserStatus", function () {
       expect(response.body.allUserStatus).to.be.a("array");
       expect(response.body.allUserStatus.length).to.equal(1);
     });
+
+    it("Should return pagination links with empty next/prev on a single page", async function () {
+      const response = await chai
+        .request(app)
+        .get("/users/status")
+        .set("cookie", `${cookieName}=${superUserAuthToken}`);
+      expect(response).to.have.status(200);
+      expect(response.body.links).to.be.a("object");
+      expect(response.body.links.next).to.equal("");
+      expect(response.body.links.prev).to.equal("");
+    });
   });
 
   describe("GET /users/status/:userid", function () {

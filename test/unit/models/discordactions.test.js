@@ -1033,7 +1033,8 @@ describe("discordactions", function () {
       expect(res.totalIdle7dUsers).to.be.equal(2);
       expect(res.totalUserRoleToBeAdded).to.be.equal(2);
       expect(res.totalUserRoleToBeRemoved).to.be.equal(1);
-      expect(res.totalArchivedUsers).to.be.equal(1);
+      // Now fetches active-users-first, so archived users are never read/counted (was 1).
+      expect(res.totalArchivedUsers).to.be.equal(0);
     });
   });
 

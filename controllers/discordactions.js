@@ -336,7 +336,7 @@ const setRoleIdle7DToIdleUsers = async (req, res) => {
 const updateDiscordNicknames = async (req, res) => {
   try {
     const membersInDiscord = await getDiscordMembers();
-    const usersInDB = await fetchAllUsers();
+    const usersInDB = await fetchAllUsers({ nonArchivedOnly: true });
     const usersToBeEffected = [];
     await Promise.all(
       membersInDiscord.map(async (discordUser) => {

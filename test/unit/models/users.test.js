@@ -313,6 +313,58 @@ describe("users", function () {
       const result = await users.fetchAllUsers();
       expect(result).to.have.length(userDataArray.length);
     });
+
+    it("gets only non-archived users when nonArchivedOnly is true", async function () {
+      const result = await users.fetchAllUsers({ nonArchivedOnly: true });
+      expect(result.length).to.be.below(userDataArray.length);
+      result.forEach((user) => {
+        expect(user.roles?.archived).to.not.equal(true);
+      });
+    });
+  });
+
+  describe("fetchNonArchivedUsers", function () {
+    beforeEach(async function () {
+      await userModel.add({
+        username: "active-alpha",
+        first_name: "Active",
+        last_name: "Alpha",
+        roles: { archived: false },
+      });
+      await userModel.add({
+        username: "active-beta",
+        first_name: "Active",
+        last_name: "Beta",
+        roles: { archived: false },
+      });
+      await userModel.add({
+        username: "archived-gamma",
+        first_name: "Archived",
+        last_name: "Gamma",
+        roles: { archived: true },
+      });
+    });
+
+    it("returns only non-archived users and empty cursors on a single page", async function () {
+      const result = await users.fetchNonArchivedUsers({ size: 100 });
+      expect(result.users).to.be.an("array");
+      expect(result.users.length).to.equal(2);
+      result.users.forEach((user) => expect(user.roles.archived).to.equal(false));
+      expect(result.nextId).to.equal("");
+      expect(result.prevId).to.equal("");
+    });
+
+    it("paginates forward with the nextId cursor", async function () {
+      const page1 = await users.fetchNonArchivedUsers({ size: 1 });
+      expect(page1.users.length).to.equal(1);
+      expect(page1.nextId).to.not.equal("");
+      expect(page1.prevId).to.equal("");
+
+      const page2 = await users.fetchNonArchivedUsers({ next: page1.nextId, size: 1 });
+      expect(page2.users.length).to.equal(1);
+      expect(page2.users[0].id).to.not.equal(page1.users[0].id);
+      expect(page2.prevId).to.not.equal("");
+    });
   });
 
   describe("add Join Data", function () {

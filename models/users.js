@@ -764,9 +764,10 @@ const getDiscordUsers = async () => {
   }
 };
 
-const fetchAllUsers = async () => {
+const fetchAllUsers = async ({ nonArchivedOnly = false } = {}) => {
   const users = [];
-  const usersQuerySnapshot = await userModel.get();
+  const query = nonArchivedOnly ? userModel.where("roles.archived", "==", false) : userModel;
+  const usersQuerySnapshot = await query.get();
   usersQuerySnapshot.forEach((user) => users.push({ ...user.data(), id: user.id }));
   return users;
 };
@@ -1129,6 +1130,43 @@ const fetchUsersNotInDiscordServer = async () => {
   }
 };
 
+const fetchNonArchivedUsers = async ({ next = null, prev = null, size = 100 } = {}) => {
+  try {
+    let dbQuery = userModel.where("roles.archived", "==", false).orderBy("username");
+
+    if (prev || next) {
+      const cursorDoc = await userModel.doc(prev || next).get();
+      if (!cursorDoc.exists) {
+        return { users: [], nextId: "", prevId: "" };
+      }
+      dbQuery = prev ? dbQuery.endBefore(cursorDoc).limitToLast(size) : dbQuery.startAfter(cursorDoc).limit(size);
+    } else {
+      dbQuery = dbQuery.limit(size);
+    }
+
+    const snapshot = await dbQuery.get();
+    const users = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const firstId = snapshot.docs[0]?.id || "";
+    const lastId = snapshot.docs[snapshot.docs.length - 1]?.id || "";
+    const isFullPage = users.length === size;
+
+    let nextId = "";
+    let prevId = "";
+    if (prev) {
+      nextId = lastId;
+      if (isFullPage) prevId = firstId;
+    } else {
+      if (isFullPage) nextId = lastId;
+      if (next) prevId = firstId;
+    }
+
+    return { users, nextId, prevId };
+  } catch (err) {
+    logger.error("Error retrieving non-archived users", err);
+    throw err;
+  }
+};
+
 module.exports = {
   archiveUsers,
   addOrUpdate,
@@ -1160,4 +1198,5 @@ module.exports = {
   getNonNickNameSyncedUsers,
   updateUsersWithNewUsernames,
   fetchUsersNotInDiscordServer,
+  fetchNonArchivedUsers,
 };
