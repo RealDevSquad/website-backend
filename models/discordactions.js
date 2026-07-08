@@ -28,7 +28,7 @@ const discordMissedUpdatesRoleId = config.get("discordMissedUpdatesRoleId");
 
 const userStatusModel = firestore.collection("usersStatus");
 const usersUtils = require("../utils/users");
-const { getUsersBasedOnFilter, fetchUser, fetchNonArchivedUsers } = require("./users");
+const { getUsersBasedOnFilter, fetchUser, fetchAllUsers } = require("./users");
 const {
   convertDaysToMilliseconds,
   convertMillisToSeconds,
@@ -399,19 +399,16 @@ const shouldAddIdleUser = async (userStatus, tasksModel) => {
 
 const getNonArchivedIdleUsersWithStatus = async () => {
   const idleUsers = [];
-  let next = null;
-  do {
-    const { users, nextId } = await fetchNonArchivedUsers({ next, size: 100 });
-    if (!users.length) break;
-    const statusById = await getUserStatusForUserIds(users.map((user) => user.id));
-    for (const user of users) {
-      const status = statusById[user.id];
-      if (status?.currentStatus?.state === userState.IDLE) {
-        idleUsers.push({ user, status });
-      }
+  const users = await fetchAllUsers({ nonArchivedOnly: true });
+  if (!users.length) return idleUsers;
+
+  const statusById = await getUserStatusForUserIds(users.map((user) => user.id));
+  for (const user of users) {
+    const status = statusById[user.id];
+    if (status?.currentStatus?.state === userState.IDLE) {
+      idleUsers.push({ user, status });
     }
-    next = nextId || null;
-  } while (next);
+  }
   return idleUsers;
 };
 
