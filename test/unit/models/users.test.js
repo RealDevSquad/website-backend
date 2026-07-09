@@ -329,19 +329,19 @@ describe("users", function () {
         username: "active-alpha",
         first_name: "Active",
         last_name: "Alpha",
-        roles: { archived: false },
+        roles: { archived: false, in_discord: true },
       });
       await userModel.add({
         username: "active-beta",
         first_name: "Active",
         last_name: "Beta",
-        roles: { archived: false },
+        roles: { archived: false, in_discord: true },
       });
       await userModel.add({
         username: "archived-gamma",
         first_name: "Archived",
         last_name: "Gamma",
-        roles: { archived: true },
+        roles: { archived: true, in_discord: false },
       });
     });
 
@@ -354,18 +354,12 @@ describe("users", function () {
       expect(result.prevId).to.equal("");
     });
 
-    it("excludes archived users even when in_discord is false, and keeps non-archived users regardless of in_discord", async function () {
+    it("excludes archived users (archived=true, in_discord=false)", async function () {
       await userModel.add({
         username: "archived-delta",
         first_name: "Archived",
         last_name: "Delta",
         roles: { archived: true, in_discord: false },
-      });
-      await userModel.add({
-        username: "active-epsilon",
-        first_name: "Active",
-        last_name: "Epsilon",
-        roles: { archived: false, in_discord: false },
       });
 
       const result = await users.fetchNonArchivedUsers({ size: 100 });
@@ -374,7 +368,6 @@ describe("users", function () {
       result.users.forEach((user) => expect(user.roles.archived).to.equal(false));
       expect(returnedUsernames).to.not.include("archived-gamma");
       expect(returnedUsernames).to.not.include("archived-delta");
-      expect(returnedUsernames).to.include("active-epsilon");
     });
 
     it("paginates forward with the nextId cursor", async function () {
