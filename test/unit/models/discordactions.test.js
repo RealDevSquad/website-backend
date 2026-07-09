@@ -1027,13 +1027,12 @@ describe("discordactions", function () {
       await cleanDb();
     });
 
-    it("should return  totalIdleUsers as 3,totalRolesApplied as 3, totalRoleToBeAdded as 3 as no one is maven", async function () {
+    it("should return totalIdle7dUsers as 2, totalRoleToBeAdded as 2, totalRoleToBeRemoved as 1, totalArchivedUsers as 0", async function () {
       const dev = "true";
       const res = await updateIdle7dUsersOnDiscord(dev);
       expect(res.totalIdle7dUsers).to.be.equal(2);
       expect(res.totalUserRoleToBeAdded).to.be.equal(2);
       expect(res.totalUserRoleToBeRemoved).to.be.equal(1);
-      // Now fetches active-users-first, so archived users are never read/counted (was 1).
       expect(res.totalArchivedUsers).to.be.equal(0);
     });
   });
