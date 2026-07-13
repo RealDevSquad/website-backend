@@ -27,6 +27,7 @@ const usersCollection = firestore.collection("users");
 const config = require("config");
 const DISCORD_BASE_URL = config.get("services.discordBot.baseUrl");
 const { generateAuthTokenForCloudflare } = require("../utils/discord-actions");
+const logger = require("../utils/logger");
 
 // added this function here to avoid circular dependency
 /**

@@ -1,4 +1,4 @@
-import { userFutureStatusData } from "../../fixtures/userFutureStatus/userFutureStatusData";
+const { userFutureStatusData } = require("../../fixtures/userFutureStatus/userFutureStatusData");
 const chai = require("chai");
 const sinon = require("sinon");
 const { NotFound, Forbidden } = require("http-errors");
