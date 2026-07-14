@@ -6,7 +6,7 @@ const { expect } = chai;
 const firestore = require("../../../utils/firestore");
 const userStatusModel = firestore.collection("usersStatus");
 const tasksModel = firestore.collection("tasks");
-const { cancelOooStatus, addFutureStatus } = require("../../../models/userStatus");
+const { cancelOooStatus, addFutureStatus, updateAllUserStatus } = require("../../../models/userStatus");
 const cleanDb = require("../../utils/cleanDb");
 const addUser = require("../../utils/addUser");
 const { userState } = require("../../../constants/userStatus");
@@ -85,5 +85,142 @@ describe("tasks", function () {
     const response = await addFutureStatus(userFutureStatusData);
     expect(response.userStatusExists).to.equal(true);
     expect(response.data.futureStatus.state).to.equal("UPCOMING");
+  });
+
+  describe("updateAllUserStatus", function () {
+    let clock;
+
+    beforeEach(async function () {
+      clock = sinon.useFakeTimers({
+        now: new Date("2026-07-14T02:00:00.000Z").getTime(),
+        toFake: ["Date"],
+      });
+    });
+
+    afterEach(async function () {
+      clock.restore();
+      await cleanDb();
+    });
+
+    it("Should update user status when futureStatus.from <= today (e.g. from is in the past)", async function () {
+      const today = Date.now();
+      const docRef = userStatusModel.doc();
+
+      // futureStatus.from = today - 1 day (in the past)
+      const userStatusData = {
+        userId,
+        currentStatus: {
+          state: userState.OOO,
+          from: today - 2 * 24 * 60 * 60 * 1000,
+          until: today + 2 * 24 * 60 * 60 * 1000,
+          message: "On leave",
+          updatedAt: today - 2 * 24 * 60 * 60 * 1000,
+        },
+        futureStatus: {
+          state: userState.ACTIVE,
+          from: today - 24 * 60 * 60 * 1000, // yesterday
+          until: "",
+          message: "",
+          updatedAt: today - 24 * 60 * 60 * 1000,
+        },
+        monthlyHours: {
+          committed: 40,
+          updatedAt: today - 2 * 24 * 60 * 60 * 1000,
+        },
+      };
+      await docRef.set(userStatusData);
+
+      const summary = await updateAllUserStatus();
+      expect(summary.usersCount).to.equal(1);
+      expect(summary.oooUsersAltered).to.equal(1);
+
+      const doc = await docRef.get();
+      const data = doc.data();
+
+      // Verify status has updated to ACTIVE
+      expect(data.currentStatus.state).to.equal(userState.ACTIVE);
+      expect(data.currentStatus.from).to.equal(today - 24 * 60 * 60 * 1000);
+      expect(data.futureStatus).to.equal(undefined);
+    });
+
+    it("Should update user status when futureStatus.from === today (boundary case)", async function () {
+      const today = Date.now();
+      const docRef = userStatusModel.doc();
+
+      const userStatusData = {
+        userId,
+        currentStatus: {
+          state: userState.OOO,
+          from: today - 24 * 60 * 60 * 1000,
+          until: today + 24 * 60 * 60 * 1000,
+          message: "On leave",
+          updatedAt: today - 24 * 60 * 60 * 1000,
+        },
+        futureStatus: {
+          state: userState.ACTIVE,
+          from: today, // exactly today
+          until: "",
+          message: "",
+          updatedAt: today - 24 * 60 * 60 * 1000,
+        },
+        monthlyHours: {
+          committed: 40,
+          updatedAt: today - 24 * 60 * 60 * 1000,
+        },
+      };
+      await docRef.set(userStatusData);
+
+      const summary = await updateAllUserStatus();
+      expect(summary.usersCount).to.equal(1);
+      expect(summary.oooUsersAltered).to.equal(1);
+
+      const doc = await docRef.get();
+      const data = doc.data();
+
+      // Verify status has updated to ACTIVE
+      expect(data.currentStatus.state).to.equal(userState.ACTIVE);
+      expect(data.currentStatus.from).to.equal(today);
+      expect(data.futureStatus).to.equal(undefined);
+    });
+
+    it("Should not update user status when futureStatus.from > today (e.g. from is in the future)", async function () {
+      const today = Date.now();
+      const docRef = userStatusModel.doc();
+
+      // futureStatus.from = today + 1 day (in the future)
+      const userStatusData = {
+        userId,
+        currentStatus: {
+          state: userState.OOO,
+          from: today - 24 * 60 * 60 * 1000,
+          until: today + 2 * 24 * 60 * 60 * 1000,
+          message: "On leave",
+          updatedAt: today - 24 * 60 * 60 * 1000,
+        },
+        futureStatus: {
+          state: userState.ACTIVE,
+          from: today + 24 * 60 * 60 * 1000, // tomorrow
+          until: "",
+          message: "",
+          updatedAt: today - 24 * 60 * 60 * 1000,
+        },
+        monthlyHours: {
+          committed: 40,
+          updatedAt: today - 24 * 60 * 60 * 1000,
+        },
+      };
+      await docRef.set(userStatusData);
+
+      const summary = await updateAllUserStatus();
+      expect(summary.usersCount).to.equal(0);
+      expect(summary.oooUsersAltered).to.equal(0);
+
+      const doc = await docRef.get();
+      const data = doc.data();
+
+      // Verify status remains OOO and futureStatus is not touched
+      expect(data.currentStatus.state).to.equal(userState.OOO);
+      expect(data.futureStatus.state).to.equal(userState.ACTIVE);
+    });
   });
 });
