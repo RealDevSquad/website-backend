@@ -8,7 +8,6 @@ const app = require("../../server");
 const authService = require("../../services/authService");
 const addUser = require("../utils/addUser");
 const cleanDb = require("../utils/cleanDb");
-// Import fixtures
 const userData = require("../fixtures/user/user")();
 const superUser = userData[4];
 const {
@@ -180,7 +179,7 @@ describe("UserStatus", function () {
         },
         futureStatus: {
           state: userState.ACTIVE,
-          from: today - 24 * 60 * 60 * 1000, // yesterday
+          from: today - 24 * 60 * 60 * 1000,
           until: "",
           message: "",
           updatedAt: today - 24 * 60 * 60 * 1000,
@@ -203,7 +202,7 @@ describe("UserStatus", function () {
         },
         futureStatus: {
           state: userState.ACTIVE,
-          from: today + 24 * 60 * 60 * 1000, // tomorrow
+          from: today + 24 * 60 * 60 * 1000,
           until: "",
           message: "",
           updatedAt: today - 24 * 60 * 60 * 1000,
@@ -226,7 +225,7 @@ describe("UserStatus", function () {
         },
         futureStatus: {
           state: userState.ACTIVE,
-          from: today, // exactly today
+          from: today,
           until: "",
           message: "",
           updatedAt: today - 24 * 60 * 60 * 1000,
@@ -337,7 +336,6 @@ describe("UserStatus", function () {
     });
 
     it("Should return 401 for unauthorized request for user and superuser", function (done) {
-      // Using ONBOARDING state since OOO is now blocked by the validator
       chai
         .request(app)
         .patch(`/users/status/${testUserId}`)

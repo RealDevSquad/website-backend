@@ -38,7 +38,7 @@ describe("tasks", function () {
 
   it("Should clear the future Status if the User cancels OOO", async function () {
     const data = generateStatusDataForCancelOOO(userId, userState.OOO);
-    const from = new Date().getTime() + 24 * 60 * 60 * 1000; // 1 day offset from current time
+    const from = new Date().getTime() + 24 * 60 * 60 * 1000;
     data.futureStatus = generateDefaultFutureStatus(userState.IDLE, from, "");
     await docRefUser0.set(data);
     const response = await cancelOooStatus(userId);
@@ -102,32 +102,47 @@ describe("tasks", function () {
       await cleanDb();
     });
 
-    it("Should update user status when futureStatus.from <= today (e.g. from is in the past)", async function () {
-      const today = Date.now();
-      const docRef = userStatusModel.doc();
-
-      // futureStatus.from = today - 1 day (in the past)
-      const userStatusData = {
+    function buildUserStatusMock(
+      userId,
+      today,
+      {
+        currentStatusFromOffset = -24 * 60 * 60 * 1000,
+        currentStatusUntilOffset = 2 * 24 * 60 * 60 * 1000,
+        futureStatusFromOffset,
+      } = {}
+    ) {
+      const currentFrom = today + currentStatusFromOffset;
+      return {
         userId,
         currentStatus: {
           state: userState.OOO,
-          from: today - 2 * 24 * 60 * 60 * 1000,
-          until: today + 2 * 24 * 60 * 60 * 1000,
+          from: currentFrom,
+          until: today + currentStatusUntilOffset,
           message: "On leave",
-          updatedAt: today - 2 * 24 * 60 * 60 * 1000,
+          updatedAt: currentFrom,
         },
         futureStatus: {
           state: userState.ACTIVE,
-          from: today - 24 * 60 * 60 * 1000, // yesterday
+          from: today + futureStatusFromOffset,
           until: "",
           message: "",
           updatedAt: today - 24 * 60 * 60 * 1000,
         },
         monthlyHours: {
           committed: 40,
-          updatedAt: today - 2 * 24 * 60 * 60 * 1000,
+          updatedAt: currentFrom,
         },
       };
+    }
+
+    it("Should update user status when futureStatus.from <= today (e.g. from is in the past)", async function () {
+      const today = Date.now();
+      const docRef = userStatusModel.doc();
+
+      const userStatusData = buildUserStatusMock(userId, today, {
+        currentStatusFromOffset: -2 * 24 * 60 * 60 * 1000,
+        futureStatusFromOffset: -24 * 60 * 60 * 1000,
+      });
       await docRef.set(userStatusData);
 
       const summary = await updateAllUserStatus();
@@ -137,7 +152,6 @@ describe("tasks", function () {
       const doc = await docRef.get();
       const data = doc.data();
 
-      // Verify status has updated to ACTIVE
       expect(data.currentStatus.state).to.equal(userState.ACTIVE);
       expect(data.currentStatus.from).to.equal(today - 24 * 60 * 60 * 1000);
       expect(data.futureStatus).to.equal(undefined);
@@ -147,27 +161,10 @@ describe("tasks", function () {
       const today = Date.now();
       const docRef = userStatusModel.doc();
 
-      const userStatusData = {
-        userId,
-        currentStatus: {
-          state: userState.OOO,
-          from: today - 24 * 60 * 60 * 1000,
-          until: today + 24 * 60 * 60 * 1000,
-          message: "On leave",
-          updatedAt: today - 24 * 60 * 60 * 1000,
-        },
-        futureStatus: {
-          state: userState.ACTIVE,
-          from: today, // exactly today
-          until: "",
-          message: "",
-          updatedAt: today - 24 * 60 * 60 * 1000,
-        },
-        monthlyHours: {
-          committed: 40,
-          updatedAt: today - 24 * 60 * 60 * 1000,
-        },
-      };
+      const userStatusData = buildUserStatusMock(userId, today, {
+        currentStatusUntilOffset: 24 * 60 * 60 * 1000,
+        futureStatusFromOffset: 0,
+      });
       await docRef.set(userStatusData);
 
       const summary = await updateAllUserStatus();
@@ -177,7 +174,6 @@ describe("tasks", function () {
       const doc = await docRef.get();
       const data = doc.data();
 
-      // Verify status has updated to ACTIVE
       expect(data.currentStatus.state).to.equal(userState.ACTIVE);
       expect(data.currentStatus.from).to.equal(today);
       expect(data.futureStatus).to.equal(undefined);
@@ -187,28 +183,9 @@ describe("tasks", function () {
       const today = Date.now();
       const docRef = userStatusModel.doc();
 
-      // futureStatus.from = today + 1 day (in the future)
-      const userStatusData = {
-        userId,
-        currentStatus: {
-          state: userState.OOO,
-          from: today - 24 * 60 * 60 * 1000,
-          until: today + 2 * 24 * 60 * 60 * 1000,
-          message: "On leave",
-          updatedAt: today - 24 * 60 * 60 * 1000,
-        },
-        futureStatus: {
-          state: userState.ACTIVE,
-          from: today + 24 * 60 * 60 * 1000, // tomorrow
-          until: "",
-          message: "",
-          updatedAt: today - 24 * 60 * 60 * 1000,
-        },
-        monthlyHours: {
-          committed: 40,
-          updatedAt: today - 24 * 60 * 60 * 1000,
-        },
-      };
+      const userStatusData = buildUserStatusMock(userId, today, {
+        futureStatusFromOffset: 24 * 60 * 60 * 1000,
+      });
       await docRef.set(userStatusData);
 
       const summary = await updateAllUserStatus();
@@ -218,7 +195,6 @@ describe("tasks", function () {
       const doc = await docRef.get();
       const data = doc.data();
 
-      // Verify status remains OOO and futureStatus is not touched
       expect(data.currentStatus.state).to.equal(userState.OOO);
       expect(data.futureStatus.state).to.equal(userState.ACTIVE);
     });
