@@ -10,7 +10,11 @@ const { cancelOooStatus, addFutureStatus, updateAllUserStatus } = require("../..
 const cleanDb = require("../../utils/cleanDb");
 const addUser = require("../../utils/addUser");
 const { userState } = require("../../../constants/userStatus");
-const { generateStatusDataForCancelOOO, generateDefaultFutureStatus } = require("../../fixtures/userStatus/userStatus");
+const {
+  generateStatusDataForCancelOOO,
+  generateDefaultFutureStatus,
+  generateOooUserStatusDoc,
+} = require("../../fixtures/userStatus/userStatus");
 
 describe("tasks", function () {
   let userId;
@@ -102,44 +106,11 @@ describe("tasks", function () {
       await cleanDb();
     });
 
-    function buildUserStatusMock(
-      userId,
-      today,
-      {
-        currentStatusFromOffset = -24 * 60 * 60 * 1000,
-        currentStatusUntilOffset = 2 * 24 * 60 * 60 * 1000,
-        futureStatusFromOffset,
-      } = {}
-    ) {
-      const currentFrom = today + currentStatusFromOffset;
-      return {
-        userId,
-        currentStatus: {
-          state: userState.OOO,
-          from: currentFrom,
-          until: today + currentStatusUntilOffset,
-          message: "On leave",
-          updatedAt: currentFrom,
-        },
-        futureStatus: {
-          state: userState.ACTIVE,
-          from: today + futureStatusFromOffset,
-          until: "",
-          message: "",
-          updatedAt: today - 24 * 60 * 60 * 1000,
-        },
-        monthlyHours: {
-          committed: 40,
-          updatedAt: currentFrom,
-        },
-      };
-    }
-
     it("Should update user status when futureStatus.from <= today (e.g. from is in the past)", async function () {
       const today = Date.now();
       const docRef = userStatusModel.doc();
 
-      const userStatusData = buildUserStatusMock(userId, today, {
+      const userStatusData = generateOooUserStatusDoc(userId, today, {
         currentStatusFromOffset: -2 * 24 * 60 * 60 * 1000,
         futureStatusFromOffset: -24 * 60 * 60 * 1000,
       });
@@ -161,7 +132,7 @@ describe("tasks", function () {
       const today = Date.now();
       const docRef = userStatusModel.doc();
 
-      const userStatusData = buildUserStatusMock(userId, today, {
+      const userStatusData = generateOooUserStatusDoc(userId, today, {
         currentStatusUntilOffset: 24 * 60 * 60 * 1000,
         futureStatusFromOffset: 0,
       });
@@ -183,7 +154,7 @@ describe("tasks", function () {
       const today = Date.now();
       const docRef = userStatusModel.doc();
 
-      const userStatusData = buildUserStatusMock(userId, today, {
+      const userStatusData = generateOooUserStatusDoc(userId, today, {
         futureStatusFromOffset: 24 * 60 * 60 * 1000,
       });
       await docRef.set(userStatusData);
