@@ -314,8 +314,8 @@ describe("users", function () {
       expect(result).to.have.length(userDataArray.length);
     });
 
-    it("gets only non-archived users when nonArchivedOnly is true", async function () {
-      const result = await users.fetchAllUsers({ nonArchivedOnly: true });
+    it("gets only non-archived users when filterActiveUsers is true", async function () {
+      const result = await users.fetchAllUsers({ filterActiveUsers: true });
       expect(result.length).to.be.below(userDataArray.length);
       result.forEach((user) => {
         expect(user.roles?.archived).to.not.equal(true);

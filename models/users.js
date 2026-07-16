@@ -764,9 +764,9 @@ const getDiscordUsers = async () => {
   }
 };
 
-const fetchAllUsers = async ({ nonArchivedOnly = false } = {}) => {
+const fetchAllUsers = async ({ filterActiveUsers = false } = {}) => {
   const users = [];
-  const query = nonArchivedOnly ? userModel.where("roles.archived", "==", false) : userModel;
+  const query = filterActiveUsers ? userModel.where("roles.archived", "==", false) : userModel;
   const usersQuerySnapshot = await query.get();
   usersQuerySnapshot.forEach((user) => users.push({ ...user.data(), id: user.id }));
   return users;

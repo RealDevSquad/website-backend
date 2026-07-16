@@ -399,7 +399,7 @@ const shouldAddIdleUser = async (userStatus, tasksModel) => {
 
 const getNonArchivedIdleUsersWithStatus = async () => {
   const idleUsers = [];
-  const users = await fetchAllUsers({ nonArchivedOnly: true });
+  const users = await fetchAllUsers({ filterActiveUsers: true });
   if (!users.length) return idleUsers;
 
   const statusById = await getUserStatusForUserIds(users.map((user) => user.id));
