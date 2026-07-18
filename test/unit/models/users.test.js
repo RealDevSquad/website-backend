@@ -313,6 +313,94 @@ describe("users", function () {
       const result = await users.fetchAllUsers();
       expect(result).to.have.length(userDataArray.length);
     });
+
+    it("gets only non-archived users when filterActiveUsers is true", async function () {
+      const result = await users.fetchAllUsers({ filterActiveUsers: true });
+      expect(result.length).to.be.below(userDataArray.length);
+      result.forEach((user) => {
+        expect(user.roles?.archived).to.not.equal(true);
+      });
+    });
+  });
+
+  describe("fetchNonArchivedUsers", function () {
+    beforeEach(async function () {
+      await userModel.add({
+        username: "active-alpha",
+        first_name: "Active",
+        last_name: "Alpha",
+        roles: { archived: false, in_discord: true },
+      });
+      await userModel.add({
+        username: "active-beta",
+        first_name: "Active",
+        last_name: "Beta",
+        roles: { archived: false, in_discord: true },
+      });
+      await userModel.add({
+        username: "archived-gamma",
+        first_name: "Archived",
+        last_name: "Gamma",
+        roles: { archived: true, in_discord: false },
+      });
+    });
+
+    it("returns only non-archived users and empty cursors on a single page", async function () {
+      const result = await users.fetchNonArchivedUsers({ size: 100 });
+      expect(result.users).to.be.an("array");
+      expect(result.users.length).to.equal(2);
+      result.users.forEach((user) => expect(user.roles.archived).to.equal(false));
+      expect(result.nextId).to.equal("");
+      expect(result.prevId).to.equal("");
+    });
+
+    it("excludes archived users (archived=true, in_discord=false)", async function () {
+      await userModel.add({
+        username: "archived-delta",
+        first_name: "Archived",
+        last_name: "Delta",
+        roles: { archived: true, in_discord: false },
+      });
+
+      const result = await users.fetchNonArchivedUsers({ size: 100 });
+      const returnedUsernames = result.users.map((user) => user.username);
+
+      result.users.forEach((user) => expect(user.roles.archived).to.equal(false));
+      expect(returnedUsernames).to.not.include("archived-gamma");
+      expect(returnedUsernames).to.not.include("archived-delta");
+    });
+
+    it("paginates forward with the nextId cursor", async function () {
+      const page1 = await users.fetchNonArchivedUsers({ size: 1 });
+      expect(page1.users.length).to.equal(1);
+      expect(page1.nextId).to.not.equal("");
+      expect(page1.prevId).to.equal("");
+
+      const page2 = await users.fetchNonArchivedUsers({ next: page1.nextId, size: 1 });
+      expect(page2.users.length).to.equal(1);
+      expect(page2.users[0].id).to.not.equal(page1.users[0].id);
+      expect(page2.prevId).to.not.equal("");
+    });
+
+    it("paginates backward with the prevId cursor", async function () {
+      const page1 = await users.fetchNonArchivedUsers({ size: 1 });
+      const page2 = await users.fetchNonArchivedUsers({ next: page1.nextId, size: 1 });
+      expect(page2.prevId).to.not.equal("");
+
+      const backToPage1 = await users.fetchNonArchivedUsers({ prev: page2.prevId, size: 1 });
+      expect(backToPage1.users.length).to.equal(1);
+      expect(backToPage1.users[0].id).to.equal(page1.users[0].id);
+    });
+
+    it("caps the returned users to the requested size", async function () {
+      const singleUserPage = await users.fetchNonArchivedUsers({ size: 1 });
+      expect(singleUserPage.users.length).to.equal(1);
+      expect(singleUserPage.nextId).to.not.equal("");
+
+      const allUsersPage = await users.fetchNonArchivedUsers({ size: 100 });
+      expect(allUsersPage.users.length).to.equal(2);
+      expect(allUsersPage.nextId).to.equal("");
+    });
   });
 
   describe("add Join Data", function () {

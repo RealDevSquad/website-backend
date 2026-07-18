@@ -675,7 +675,10 @@ const updateDiscordUserNickname = async (req, res) => {
 };
 const markUnverified = async (req, res) => {
   try {
-    const [usersInRdsDiscordServer, allRdsLoggedInUsers] = await Promise.all([getDiscordMembers(), fetchAllUsers()]);
+    const [usersInRdsDiscordServer, allRdsLoggedInUsers] = await Promise.all([
+      getDiscordMembers(),
+      fetchAllUsers({ filterActiveUsers: true }),
+    ]);
     const rdsUserMap = {};
     const unverifiedRoleId = config.get("discordUnverifiedRoleId");
     const usersToApplyUnverifiedRole = [];
