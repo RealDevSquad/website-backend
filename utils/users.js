@@ -156,8 +156,8 @@ function getLowestLevelSkill(skills) {
  * @param documentId {string} - DB document Id
  */
 
-function getPaginationLink(query, cursor, documentId) {
-  let endpoint = `/users?${cursor}=${documentId}`;
+function getPaginationLink(query, cursor, documentId, basePath = "/users") {
+  let endpoint = `${basePath}?${cursor}=${documentId}`;
   const keysToExclude = ["next", "prev", "page"]; // next, prev needs to be updated with new document Id and page is not required in the links.
   for (const [key, value] of Object.entries(query)) {
     if (keysToExclude.includes(key)) continue;

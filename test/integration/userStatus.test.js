@@ -97,6 +97,50 @@ describe("UserStatus", function () {
       expect(response.body.allUserStatus).to.be.a("array");
       expect(response.body.allUserStatus.length).to.equal(1);
     });
+
+    it("Should return pagination links with empty next/prev on a single page", async function () {
+      const response = await chai
+        .request(app)
+        .get("/users/status")
+        .set("cookie", `${cookieName}=${superUserAuthToken}`);
+      expect(response).to.have.status(200);
+      expect(response.body.links).to.be.a("object");
+      expect(response.body.links.next).to.equal("");
+      expect(response.body.links.prev).to.equal("");
+    });
+
+    it("Should paginate non-archived user statuses across multiple pages via next/prev cursors", async function () {
+      await addUser(userData[6]);
+      await addUser(userData[8]);
+      await addUser(userData[9]);
+
+      const userIdsFromResponse = (response) => response.body.allUserStatus.map((status) => status.userId);
+
+      const firstPage = await chai
+        .request(app)
+        .get("/users/status?size=2")
+        .set("cookie", `${cookieName}=${superUserAuthToken}`);
+      expect(firstPage).to.have.status(200);
+      expect(firstPage.body.allUserStatus.length).to.equal(2);
+      expect(firstPage.body.links.next).to.not.equal("");
+      expect(firstPage.body.links.prev).to.equal("");
+
+      const secondPage = await chai
+        .request(app)
+        .get(firstPage.body.links.next)
+        .set("cookie", `${cookieName}=${superUserAuthToken}`);
+      expect(secondPage).to.have.status(200);
+      expect(secondPage.body.allUserStatus.length).to.equal(2);
+      expect(secondPage.body.links.prev).to.not.equal("");
+      expect(userIdsFromResponse(secondPage).some((id) => userIdsFromResponse(firstPage).includes(id))).to.equal(false);
+
+      const firstPageAgain = await chai
+        .request(app)
+        .get(secondPage.body.links.prev)
+        .set("cookie", `${cookieName}=${superUserAuthToken}`);
+      expect(firstPageAgain).to.have.status(200);
+      expect(userIdsFromResponse(firstPageAgain)).to.have.members(userIdsFromResponse(firstPage));
+    });
   });
 
   describe("GET /users/status/:userid", function () {
