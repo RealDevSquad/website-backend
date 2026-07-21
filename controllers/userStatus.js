@@ -1,8 +1,9 @@
 const { Forbidden, NotFound } = require("http-errors");
 const { getUserIdBasedOnRoute } = require("../utils/userStatus");
+const { getPaginationLink } = require("../utils/users");
 const { INTERNAL_SERVER_ERROR } = require("../constants/errorMessages");
-const dataAccess = require("../services/dataAccessLayer");
 const userStatusModel = require("../models/userStatus");
+const usersModel = require("../models/users");
 const { userState, CANCEL_OOO } = require("../constants/userStatus");
 const ROLES = require("../constants/roles");
 const firestore = require("../utils/firestore");
@@ -75,25 +76,49 @@ const getUserStatus = async (req, res) => {
  */
 const getAllUserStatus = async (req, res) => {
   try {
-    const { allUserStatus } = await userStatusModel.getAllUserStatus(req.query);
-    const activeUsers = [];
-    if (allUserStatus) {
-      const allUsersStatusFetchPromises = allUserStatus.map(async (status) => {
-        //  fetching users from users collection with the help of userID in userStatus collection
-        const result = await dataAccess.retrieveUsers({ id: status.userId });
-        if (!result.user?.roles?.archived) {
-          status.full_name = `${result.user.first_name} ${result.user.last_name}`;
-          status.picture = result.user.picture;
-          status.username = result.user.username;
-          activeUsers.push(status);
-        }
+    const { state, next, prev, size } = req.query;
+    const pageSize = parseInt(size) || 100;
+
+    const { users, nextId, prevId } = await usersModel.fetchNonArchivedUsers({ next, prev, size: pageSize });
+
+    if (!users.length) {
+      return res.json({
+        message: "No users found.",
+        totalUserStatus: 0,
+        allUserStatus: [],
+        links: { next: "", prev: "" },
       });
-      await Promise.all(allUsersStatusFetchPromises);
     }
+
+    const userIds = users.map((u) => u.id);
+    const statusMap = await userStatusModel.getUserStatusForUserIds(userIds);
+
+    let allUserStatus = users.map((user) => {
+      const status = statusMap[user.id];
+      return {
+        id: status?.id ?? null,
+        userId: user.id,
+        currentStatus: status?.currentStatus ?? null,
+        monthlyHours: status?.monthlyHours ?? null,
+        idleFrom: status?.idleFrom ?? null,
+        full_name: `${user.first_name} ${user.last_name}`,
+        picture: user.picture,
+        username: user.username,
+      };
+    });
+
+    if (state) {
+      allUserStatus = allUserStatus.filter((entry) => entry.currentStatus?.state === state);
+    }
+
     return res.json({
       message: "All User Status found successfully.",
-      totalUserStatus: activeUsers.length,
-      allUserStatus: activeUsers,
+      totalUserStatus: allUserStatus.length,
+      allUserStatus,
+      links: {
+        next: nextId ? getPaginationLink(req.query, "next", nextId, "/users/status") : "",
+        prev: prevId ? getPaginationLink(req.query, "prev", prevId, "/users/status") : "",
+      },
     });
   } catch (err) {
     logger.error(`Error while fetching all the User Status: ${err}`);

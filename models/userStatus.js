@@ -28,6 +28,7 @@ const config = require("config");
 const DISCORD_BASE_URL = config.get("services.discordBot.baseUrl");
 const { generateAuthTokenForCloudflare } = require("../utils/discord-actions");
 const logger = require("../utils/logger");
+const { BATCH_SIZE_IN_CLAUSE } = require("../constants/firebase");
 
 // added this function here to avoid circular dependency
 /**
@@ -620,8 +621,6 @@ const getTaskBasedUsersStatus = async () => {
   const users = [];
   let totalIdleUsers = 0;
   let totalActiveUsers = 0;
-  const unprocessedUsers = [];
-  let errorCount = 0;
   let usersSnapshot;
   try {
     usersSnapshot = await usersCollection
@@ -634,37 +633,27 @@ const getTaskBasedUsersStatus = async () => {
   }
   const totalUsers = usersSnapshot.size;
   if (totalUsers) {
-    await Promise.all(
-      usersSnapshot.docs.map(async (userDoc) => {
-        const assigneeId = userDoc.id;
-        try {
-          const tasksQuerySnapshot = await firestore
-            .collection("tasks")
-            .where("assignee", "==", assigneeId)
-            .where("status", "in", [TASK_STATUS.ASSIGNED, TASK_STATUS.IN_PROGRESS])
-            .get();
-          if (tasksQuerySnapshot.empty) {
-            totalIdleUsers++;
-            users.push({ userId: assigneeId, state: userState.IDLE });
-          } else {
-            totalActiveUsers++;
-            users.push({ userId: assigneeId, state: userState.ACTIVE });
-          }
-        } catch (error) {
-          errorCount++;
-          unprocessedUsers.push(assigneeId);
-          logger.error(`Error retrieving tasks for user ${assigneeId}: ${error.message}`);
-        }
-      })
-    );
+    const liveTasks = await tasksModel.where("status", "in", [TASK_STATUS.ASSIGNED, TASK_STATUS.IN_PROGRESS]).get();
+    const liveAssignees = new Set(liveTasks.docs.map((doc) => doc.data().assignee));
+
+    usersSnapshot.docs.forEach((userDoc) => {
+      const userId = userDoc.id;
+      if (liveAssignees.has(userId)) {
+        totalActiveUsers++;
+        users.push({ userId, state: userState.ACTIVE });
+      } else {
+        totalIdleUsers++;
+        users.push({ userId, state: userState.IDLE });
+      }
+    });
   }
 
   return {
     totalUsers,
     totalIdleUsers,
     totalActiveUsers,
-    totalUnprocessedUsers: errorCount,
-    unprocessedUsers,
+    totalUnprocessedUsers: 0,
+    unprocessedUsers: [],
     users,
   };
 };
@@ -759,6 +748,28 @@ const addFutureStatus = async (futureStatusData) => {
   }
 };
 
+const getUserStatusForUserIds = async (userIds) => {
+  if (!userIds.length) return {};
+
+  const statusMap = {};
+  const chunks = [];
+  for (let i = 0; i < userIds.length; i += BATCH_SIZE_IN_CLAUSE) {
+    chunks.push(userIds.slice(i, i + BATCH_SIZE_IN_CLAUSE));
+  }
+
+  await Promise.all(
+    chunks.map(async (chunk) => {
+      const snapshot = await userStatusModel.where("userId", "in", chunk).get();
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        statusMap[data.userId] = { id: doc.id, ...data };
+      });
+    })
+  );
+
+  return statusMap;
+};
+
 module.exports = {
   deleteUserStatus,
   getUserStatus,
@@ -773,4 +784,5 @@ module.exports = {
   cancelOooStatus,
   getGroupRole,
   addFutureStatus,
+  getUserStatusForUserIds,
 };
