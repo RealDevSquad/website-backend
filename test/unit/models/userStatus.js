@@ -1,4 +1,4 @@
-import { userFutureStatusData } from "../../fixtures/userFutureStatus/userFutureStatusData";
+const { userFutureStatusData } = require("../../fixtures/userFutureStatus/userFutureStatusData");
 const chai = require("chai");
 const sinon = require("sinon");
 const { NotFound, Forbidden } = require("http-errors");
@@ -6,11 +6,20 @@ const { expect } = chai;
 const firestore = require("../../../utils/firestore");
 const userStatusModel = firestore.collection("usersStatus");
 const tasksModel = firestore.collection("tasks");
-const { cancelOooStatus, addFutureStatus, getUserStatusForUserIds } = require("../../../models/userStatus");
+const {
+  cancelOooStatus,
+  addFutureStatus,
+  getUserStatusForUserIds,
+  updateAllUserStatus,
+} = require("../../../models/userStatus");
 const cleanDb = require("../../utils/cleanDb");
 const addUser = require("../../utils/addUser");
 const { userState } = require("../../../constants/userStatus");
-const { generateStatusDataForCancelOOO, generateDefaultFutureStatus } = require("../../fixtures/userStatus/userStatus");
+const {
+  generateStatusDataForCancelOOO,
+  generateDefaultFutureStatus,
+  generateOooUserStatusDoc,
+} = require("../../fixtures/userStatus/userStatus");
 
 describe("tasks", function () {
   let userId;
@@ -38,7 +47,7 @@ describe("tasks", function () {
 
   it("Should clear the future Status if the User cancels OOO", async function () {
     const data = generateStatusDataForCancelOOO(userId, userState.OOO);
-    const from = new Date().getTime() + 24 * 60 * 60 * 1000; // 1 day offset from current time
+    const from = new Date().getTime() + 24 * 60 * 60 * 1000;
     data.futureStatus = generateDefaultFutureStatus(userState.IDLE, from, "");
     await docRefUser0.set(data);
     const response = await cancelOooStatus(userId);
@@ -85,6 +94,86 @@ describe("tasks", function () {
     const response = await addFutureStatus(userFutureStatusData);
     expect(response.userStatusExists).to.equal(true);
     expect(response.data.futureStatus.state).to.equal("UPCOMING");
+  });
+
+  describe("updateAllUserStatus", function () {
+    let clock;
+
+    beforeEach(async function () {
+      clock = sinon.useFakeTimers({
+        now: new Date("2026-07-14T02:00:00.000Z").getTime(),
+        toFake: ["Date"],
+      });
+    });
+
+    afterEach(async function () {
+      clock.restore();
+      await cleanDb();
+    });
+
+    it("Should update user status when futureStatus.from <= today (e.g. from is in the past)", async function () {
+      const today = Date.now();
+      const docRef = userStatusModel.doc();
+
+      const userStatusData = generateOooUserStatusDoc(userId, today, {
+        currentStatusFromOffset: -2 * 24 * 60 * 60 * 1000,
+        futureStatusFromOffset: -24 * 60 * 60 * 1000,
+      });
+      await docRef.set(userStatusData);
+
+      const summary = await updateAllUserStatus();
+      expect(summary.usersCount).to.equal(1);
+      expect(summary.oooUsersAltered).to.equal(1);
+
+      const doc = await docRef.get();
+      const data = doc.data();
+
+      expect(data.currentStatus.state).to.equal(userState.ACTIVE);
+      expect(data.currentStatus.from).to.equal(today - 24 * 60 * 60 * 1000);
+      expect(data.futureStatus).to.equal(undefined);
+    });
+
+    it("Should update user status when futureStatus.from === today (boundary case)", async function () {
+      const today = Date.now();
+      const docRef = userStatusModel.doc();
+
+      const userStatusData = generateOooUserStatusDoc(userId, today, {
+        currentStatusUntilOffset: 24 * 60 * 60 * 1000,
+        futureStatusFromOffset: 0,
+      });
+      await docRef.set(userStatusData);
+
+      const summary = await updateAllUserStatus();
+      expect(summary.usersCount).to.equal(1);
+      expect(summary.oooUsersAltered).to.equal(1);
+
+      const doc = await docRef.get();
+      const data = doc.data();
+
+      expect(data.currentStatus.state).to.equal(userState.ACTIVE);
+      expect(data.currentStatus.from).to.equal(today);
+      expect(data.futureStatus).to.equal(undefined);
+    });
+
+    it("Should not update user status when futureStatus.from > today (e.g. from is in the future)", async function () {
+      const today = Date.now();
+      const docRef = userStatusModel.doc();
+
+      const userStatusData = generateOooUserStatusDoc(userId, today, {
+        futureStatusFromOffset: 24 * 60 * 60 * 1000,
+      });
+      await docRef.set(userStatusData);
+
+      const summary = await updateAllUserStatus();
+      expect(summary.usersCount).to.equal(0);
+      expect(summary.oooUsersAltered).to.equal(0);
+
+      const doc = await docRef.get();
+      const data = doc.data();
+
+      expect(data.currentStatus.state).to.equal(userState.OOO);
+      expect(data.futureStatus.state).to.equal(userState.ACTIVE);
+    });
   });
 
   describe("getUserStatusForUserIds", function () {

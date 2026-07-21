@@ -8,13 +8,13 @@ const app = require("../../server");
 const authService = require("../../services/authService");
 const addUser = require("../utils/addUser");
 const cleanDb = require("../utils/cleanDb");
-// Import fixtures
 const userData = require("../fixtures/user/user")();
 const superUser = userData[4];
 const {
   userStatusDataForNewUser,
   userStatusDataForOooState,
   generateUserStatusData,
+  generateOooUserStatusDoc,
 } = require("../fixtures/userStatus/userStatus");
 
 const config = require("config");
@@ -183,6 +183,19 @@ describe("UserStatus", function () {
   });
 
   describe("PATCH /users/status/update", function () {
+    let clock;
+
+    beforeEach(function () {
+      clock = sinon.useFakeTimers({
+        now: new Date("2026-07-14T02:00:00.000Z").getTime(),
+        toFake: ["Date"],
+      });
+    });
+
+    afterEach(function () {
+      clock.restore();
+    });
+
     it("Should return 401 for unauthorized request", async function () {
       const response = await chai.request(app).patch("/users/status/update");
       expect(response).to.have.status(401);
@@ -191,6 +204,87 @@ describe("UserStatus", function () {
     it("Should return 401 for non-super user request", async function () {
       const response = await chai.request(app).patch("/users/status/update").set("cookie", `${cookieName}=${jwt}`);
       expect(response).to.have.status(401);
+    });
+
+    it("Should transition OOO → ACTIVE when futureStatus.from is in the past", async function () {
+      const today = Date.now();
+      const userToUpdateId = await addUser(userData[1]);
+      const docRef = firestore.collection("usersStatus").doc();
+      await docRef.set(
+        generateOooUserStatusDoc(userToUpdateId, today, {
+          currentStatusFromOffset: -2 * 24 * 60 * 60 * 1000,
+          currentStatusUntilOffset: 2 * 24 * 60 * 60 * 1000,
+          futureStatusFromOffset: -24 * 60 * 60 * 1000,
+        })
+      );
+
+      const response = await chai
+        .request(app)
+        .patch("/users/status/update")
+        .set("cookie", `${cookieName}=${superUserAuthToken}`);
+
+      expect(response).to.have.status(200);
+      expect(response.body.message).to.equal("All User Status updated successfully.");
+      expect(response.body.data.usersCount).to.equal(1);
+      expect(response.body.data.oooUsersAltered).to.equal(1);
+
+      const updatedDoc = await docRef.get();
+      expect(updatedDoc.data().currentStatus.state).to.equal(userState.ACTIVE);
+      expect(updatedDoc.data().futureStatus).to.equal(undefined);
+    });
+
+    it("Should NOT update status when futureStatus.from is in the future", async function () {
+      const today = Date.now();
+      const userNotToUpdateId = await addUser(userData[2]);
+      const docRef = firestore.collection("usersStatus").doc();
+      await docRef.set(
+        generateOooUserStatusDoc(userNotToUpdateId, today, {
+          currentStatusFromOffset: -24 * 60 * 60 * 1000,
+          currentStatusUntilOffset: 2 * 24 * 60 * 60 * 1000,
+          futureStatusFromOffset: 24 * 60 * 60 * 1000,
+        })
+      );
+
+      const response = await chai
+        .request(app)
+        .patch("/users/status/update")
+        .set("cookie", `${cookieName}=${superUserAuthToken}`);
+
+      expect(response).to.have.status(200);
+      expect(response.body.message).to.equal("All User Status updated successfully.");
+      expect(response.body.data.usersCount).to.equal(0);
+      expect(response.body.data.oooUsersAltered).to.equal(0);
+
+      const doc = await docRef.get();
+      expect(doc.data().currentStatus.state).to.equal(userState.OOO);
+      expect(doc.data().futureStatus.state).to.equal(userState.ACTIVE);
+    });
+
+    it("Should transition OOO → ACTIVE when futureStatus.from === today (boundary)", async function () {
+      const today = Date.now();
+      const userBoundaryUpdateId = await addUser(userData[3]);
+      const docRef = firestore.collection("usersStatus").doc();
+      await docRef.set(
+        generateOooUserStatusDoc(userBoundaryUpdateId, today, {
+          currentStatusFromOffset: -24 * 60 * 60 * 1000,
+          currentStatusUntilOffset: 24 * 60 * 60 * 1000,
+          futureStatusFromOffset: 0,
+        })
+      );
+
+      const response = await chai
+        .request(app)
+        .patch("/users/status/update")
+        .set("cookie", `${cookieName}=${superUserAuthToken}`);
+
+      expect(response).to.have.status(200);
+      expect(response.body.message).to.equal("All User Status updated successfully.");
+      expect(response.body.data.usersCount).to.equal(1);
+      expect(response.body.data.oooUsersAltered).to.equal(1);
+
+      const updatedDoc = await docRef.get();
+      expect(updatedDoc.data().currentStatus.state).to.equal(userState.ACTIVE);
+      expect(updatedDoc.data().futureStatus).to.equal(undefined);
     });
   });
 
@@ -265,7 +359,6 @@ describe("UserStatus", function () {
     });
 
     it("Should return 401 for unauthorized request for user and superuser", function (done) {
-      // Using ONBOARDING state since OOO is now blocked by the validator
       chai
         .request(app)
         .patch(`/users/status/${testUserId}`)
