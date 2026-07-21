@@ -6,7 +6,12 @@ const { expect } = chai;
 const firestore = require("../../../utils/firestore");
 const userStatusModel = firestore.collection("usersStatus");
 const tasksModel = firestore.collection("tasks");
-const { cancelOooStatus, addFutureStatus, getUserStatusForUserIds } = require("../../../models/userStatus");
+const {
+  cancelOooStatus,
+  addFutureStatus,
+  getUserStatusForUserIds,
+  updateAllUserStatus,
+} = require("../../../models/userStatus");
 const cleanDb = require("../../utils/cleanDb");
 const addUser = require("../../utils/addUser");
 const { userState } = require("../../../constants/userStatus");
@@ -168,6 +173,9 @@ describe("tasks", function () {
 
       expect(data.currentStatus.state).to.equal(userState.OOO);
       expect(data.futureStatus.state).to.equal(userState.ACTIVE);
+    });
+  });
+
   describe("getUserStatusForUserIds", function () {
     it("returns statuses keyed by userId for the given ids", async function () {
       await userStatusModel.add({ userId: "user-idle-1", currentStatus: { state: userState.IDLE } });
