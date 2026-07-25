@@ -170,39 +170,6 @@ const getUserStatus = async (userId) => {
 };
 
 /**
- * @returns {Promise<userStatusModel|Array>} : returns an array of all the userStatus
- */
-const getAllUserStatus = async (query) => {
-  try {
-    const allUserStatus = [];
-    let data;
-    if (!query.state) {
-      data = await userStatusModel.get();
-    } else {
-      data = await userStatusModel
-        .where("currentStatus.state", "==", query.state)
-        .orderBy("currentStatus.from", "asc")
-        .get();
-    }
-    data.forEach((doc) => {
-      const docData = doc.data();
-      const currentUserStatus = {
-        id: doc.id,
-        userId: docData.userId,
-        currentStatus: docData.currentStatus,
-        monthlyHours: docData.monthlyHours,
-        idleFrom: docData.idleFrom ?? null,
-      };
-      allUserStatus.push(currentUserStatus);
-    });
-    return { allUserStatus };
-  } catch (error) {
-    logger.error(`error in fetching the User Status of all Users. ${error}`);
-    throw error;
-  }
-};
-
-/**
  * @param userId { String }: Id of the User
  * @param newStatusData { Object }: Data to be Updated
  * @returns Promise<userStatusModel|Object>
@@ -775,7 +742,6 @@ const getUserStatusForUserIds = async (userIds) => {
 module.exports = {
   deleteUserStatus,
   getUserStatus,
-  getAllUserStatus,
   updateUserStatus,
   updateAllUserStatus,
   updateUserStatusOnNewTaskAssignment,
