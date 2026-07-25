@@ -523,7 +523,10 @@ describe("users", function () {
     beforeEach(async function () {
       const userArr = userData();
       userId0 = await addUser(userArr[0]);
-      userId1 = await addUser(userArr[1]);
+      userId1 = await addUser({
+        ...userArr[1],
+        discordJoinedAt: new Date().toISOString(),
+      });
       userId2 = await addUser(userArr[2]);
       await userStatusModel.doc("userStatus000").set(generateStatusDataForState(userId0, userState.ONBOARDING));
       await userStatusModel.doc("userStatus001").set(generateStatusDataForState(userId1, userState.ONBOARDING));
@@ -541,6 +544,17 @@ describe("users", function () {
       };
       const result = await users.getUsersBasedOnFilter(query);
       expect(result.length).to.equal(1);
+      expect(result[0].id).to.equal(userId0);
+    });
+
+    it("should only include in_discord non-archived users when filtering by state", async function () {
+      const result = await users.getUsersBasedOnFilter({ state: "IDLE" });
+      expect(result.length).to.equal(0);
+    });
+
+    it("should return active discord users matching state", async function () {
+      const result = await users.getUsersBasedOnFilter({ state: "ONBOARDING" });
+      expect(result.map((user) => user.id).sort()).to.deep.equal([userId0, userId1].sort());
     });
   });
 
