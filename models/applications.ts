@@ -154,6 +154,15 @@ const updateApplication = async (
       return { status: APPLICATION_STATUS.unauthorized };
     }
 
+    const isEditableApplicationStatus =
+      application.status === APPLICATION_STATUS_TYPES.PENDING ||
+      application.status === APPLICATION_STATUS_TYPES.CHANGES_REQUESTED;
+
+    if (!isEditableApplicationStatus) {
+      return { status: APPLICATION_STATUS.notPending };
+    }
+
+
     const lastEditAt = application.lastEditAt;
     if (lastEditAt) {
       const lastEditTimestamp = new Date(lastEditAt).getTime();
@@ -167,6 +176,7 @@ const updateApplication = async (
     const requestBody = {
       ...dataToUpdate,
       lastEditAt: new Date(currentTime).toISOString(),
+      status: APPLICATION_STATUS_TYPES.PENDING,
     };
     transaction.update(applicationRef, requestBody);
 
