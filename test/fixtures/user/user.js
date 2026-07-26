@@ -55,6 +55,10 @@ module.exports = () => {
       twitter_id: "whatifi",
       discordJoinedAt: "2023-04-06T01:47:34.488000+00:00",
       phone: "1234567891",
+      roles: {
+        archived: false,
+        in_discord: true,
+      },
       picture: {
         publicId: "profile/mtS4DhUvNYsKqI7oCWVB/aenklfhtjldc5ytei3ar",
         url: "https://res.cloudinary.com/realdevsquad/image/upload/v1667685133/profile/mtS4DhUvNYsKqI7oCWVB/aenklfhtjldc5ytei3ar.jpg",
@@ -78,6 +82,8 @@ module.exports = () => {
       email: "pgajjewar@gmail.com",
       roles: {
         restricted: true,
+        archived: false,
+        in_discord: false,
       },
       picture: {
         publicId: "profile/mtS4DhUvNYsKqI7oCWVB/aenklfhtjldc5ytei3ar",

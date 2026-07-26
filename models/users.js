@@ -6,7 +6,7 @@ const walletConstants = require("../constants/wallets");
 
 const firestore = require("../utils/firestore");
 const { fetchWallet, createWallet } = require("../models/wallets");
-const { updateUserStatus } = require("../models/userStatus");
+const { updateUserStatus, getUserStatusForUserIds } = require("../models/userStatus");
 const { arraysHaveCommonItem, chunks } = require("../utils/array");
 const {
   ALLOWED_FILTER_PARAMS,
@@ -21,7 +21,6 @@ const ROLES = require("../constants/roles");
 const userModel = firestore.collection("users");
 const joinModel = firestore.collection("applicants");
 const itemModel = firestore.collection("itemTags");
-const userStatusModel = firestore.collection("usersStatus");
 const photoVerificationModel = firestore.collection("photo-verification");
 const { ITEM_TAG, USER_STATE } = ALLOWED_FILTER_PARAMS;
 const admin = require("firebase-admin");
@@ -628,62 +627,73 @@ const getRdsUserInfoByGitHubUsername = async (githubUsername) => {
  * @return {Promise<Array>} - Array of user documents that match the filter criteria
  */
 
+const getActiveDiscordUsers = async () => {
+  const snapshot = await userModel.where("roles.in_discord", "==", true).where("roles.archived", "==", false).get();
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+};
+
 const getUsersBasedOnFilter = async (query) => {
   const allQueryKeys = Object.keys(query);
   const doesTagQueryExist = arraysHaveCommonItem(ITEM_TAG, allQueryKeys);
   const doesStateQueryExist = arraysHaveCommonItem(USER_STATE, allQueryKeys);
 
   const calls = {
-    item: itemModel,
-    state: userStatusModel,
+    item: itemModel.where("itemType", "==", "USER").where("tagType", "==", "SKILL"),
   };
-  calls.item = calls.item.where("itemType", "==", "USER").where("tagType", "==", "SKILL");
 
   Object.entries(query).forEach(([key, value]) => {
     const isTagKey = ITEM_TAG.includes(key);
-    const isStateKey = USER_STATE.includes(key);
     const isValueArray = Array.isArray(value);
 
     if (isTagKey) {
       calls.item = isValueArray ? calls.item.where(key, "in", value) : calls.item.where(key, "==", value);
-    } else if (isStateKey) {
-      calls.state = isValueArray
-        ? calls.state.where("currentStatus.state", "in", value)
-        : calls.state.where("currentStatus.state", "==", value);
     }
   });
 
   const tagItems = doesTagQueryExist ? (await calls.item.get()).docs.map((doc) => ({ id: doc.id, ...doc.data() })) : [];
-  const stateItems = doesStateQueryExist
-    ? (await calls.state.get()).docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-    : [];
+
+  let stateMatchedUsers = [];
+  let stateItems = [];
+  if (doesStateQueryExist) {
+    const activeUsers = await getActiveDiscordUsers();
+    const statusMap = await getUserStatusForUserIds(activeUsers.map((user) => user.id));
+    const requestedStates = Array.isArray(query.state) ? query.state : [query.state];
+
+    stateMatchedUsers = activeUsers.filter((user) => {
+      const status = statusMap[user.id];
+      return status?.currentStatus?.state && requestedStates.includes(status.currentStatus.state);
+    });
+    stateItems = stateMatchedUsers
+      .map((user) => statusMap[user.id])
+      .filter(Boolean)
+      .map((status) => ({ id: status.id, ...status }));
+  }
+
   let finalItems = [];
 
   if (doesTagQueryExist && doesStateQueryExist) {
-    if (stateItems.length && tagItems.length) {
-      const stateItemIds = new Set(stateItems.map((item) => item.userId));
+    if (stateMatchedUsers.length && tagItems.length) {
+      const stateItemIds = new Set(stateMatchedUsers.map((user) => user.id));
       finalItems = tagItems.filter((item) => stateItemIds.has(item.itemId)).map((item) => item.itemId);
     }
   } else if (doesStateQueryExist) {
-    finalItems = stateItems.map((item) => item.userId);
+    if (query.time && query.state === "ONBOARDING") {
+      return getUsersWithOnboardingStateInRange(stateMatchedUsers, stateItems, query.time);
+    }
+    return stateMatchedUsers;
   } else if (doesTagQueryExist) {
     finalItems = tagItems.map((item) => item.itemId);
   }
 
   if (finalItems.length) {
     finalItems = [...new Set(finalItems)];
+    if (doesStateQueryExist) {
+      const stateUserMap = new Map(stateMatchedUsers.map((user) => [user.id, user]));
+      return finalItems.map((id) => stateUserMap.get(id)).filter(Boolean);
+    }
     const userRefs = finalItems.map((itemId) => userModel.doc(itemId));
     const userDocs = (await firestore.getAll(...userRefs)).map((doc) => ({ id: doc.id, ...doc.data() }));
-    const filteredUserDocs = userDocs.filter((doc) => !doc.roles?.archived);
-    if (query.time && query.state === "ONBOARDING") {
-      const fetchUsersWithOnBoardingState = await getUsersWithOnboardingStateInRange(
-        filteredUserDocs,
-        stateItems,
-        query.time
-      );
-      return fetchUsersWithOnBoardingState;
-    }
-    return filteredUserDocs;
+    return userDocs.filter((doc) => !doc.roles?.archived);
   }
 
   const { role: roleQuery, verified: verifiedQuery } = query;

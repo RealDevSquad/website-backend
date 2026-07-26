@@ -54,7 +54,13 @@ describe("Filter Users", function () {
     );
     activeUser = await addUser(userData[8]);
     await updateUserStatus(activeUser, generateUserStatusData(userState.ACTIVE, updatedAtDate, updatedAtDate));
-    onboardingUser = await addUser(userData[2]);
+    // Override: fixture[2] is not in_discord (used elsewhere); this case needs an active onboarding user
+    // with a recent join so ONBOARDING+time=31d still returns none
+    onboardingUser = await addUser({
+      ...userData[2],
+      roles: { ...userData[2].roles, in_discord: true, archived: false },
+      discordJoinedAt: new Date().toISOString(),
+    });
     await updateUserStatus(onboardingUser, generateUserStatusData(userState.ONBOARDING, updatedAtDate, updatedAtDate));
 
     // creating tag and levels
