@@ -196,6 +196,13 @@ describe("UserStatus", function () {
       clock.restore();
     });
 
+    const setupOooUserStatus = async (userFixture, today, offsets) => {
+      const userId = await addUser(userFixture);
+      const docRef = firestore.collection("usersStatus").doc();
+      await docRef.set(generateOooUserStatusDoc(userId, today, offsets));
+      return { userId, docRef };
+    };
+
     it("Should return 401 for unauthorized request", async function () {
       const response = await chai.request(app).patch("/users/status/update");
       expect(response).to.have.status(401);
@@ -208,15 +215,11 @@ describe("UserStatus", function () {
 
     it("Should transition OOO → ACTIVE when futureStatus.from is in the past", async function () {
       const today = Date.now();
-      const userToUpdateId = await addUser(userData[1]);
-      const docRef = firestore.collection("usersStatus").doc();
-      await docRef.set(
-        generateOooUserStatusDoc(userToUpdateId, today, {
-          currentStatusFromOffset: -2 * 24 * 60 * 60 * 1000,
-          currentStatusUntilOffset: 2 * 24 * 60 * 60 * 1000,
-          futureStatusFromOffset: -24 * 60 * 60 * 1000,
-        })
-      );
+      const { docRef } = await setupOooUserStatus(userData[1], today, {
+        currentStatusFromOffset: -2 * 24 * 60 * 60 * 1000,
+        currentStatusUntilOffset: 2 * 24 * 60 * 60 * 1000,
+        futureStatusFromOffset: -24 * 60 * 60 * 1000,
+      });
 
       const response = await chai
         .request(app)
@@ -235,15 +238,11 @@ describe("UserStatus", function () {
 
     it("Should NOT update status when futureStatus.from is in the future", async function () {
       const today = Date.now();
-      const userNotToUpdateId = await addUser(userData[2]);
-      const docRef = firestore.collection("usersStatus").doc();
-      await docRef.set(
-        generateOooUserStatusDoc(userNotToUpdateId, today, {
-          currentStatusFromOffset: -24 * 60 * 60 * 1000,
-          currentStatusUntilOffset: 2 * 24 * 60 * 60 * 1000,
-          futureStatusFromOffset: 24 * 60 * 60 * 1000,
-        })
-      );
+      const { docRef } = await setupOooUserStatus(userData[2], today, {
+        currentStatusFromOffset: -24 * 60 * 60 * 1000,
+        currentStatusUntilOffset: 2 * 24 * 60 * 60 * 1000,
+        futureStatusFromOffset: 24 * 60 * 60 * 1000,
+      });
 
       const response = await chai
         .request(app)
@@ -262,15 +261,11 @@ describe("UserStatus", function () {
 
     it("Should transition OOO → ACTIVE when futureStatus.from === today (boundary)", async function () {
       const today = Date.now();
-      const userBoundaryUpdateId = await addUser(userData[3]);
-      const docRef = firestore.collection("usersStatus").doc();
-      await docRef.set(
-        generateOooUserStatusDoc(userBoundaryUpdateId, today, {
-          currentStatusFromOffset: -24 * 60 * 60 * 1000,
-          currentStatusUntilOffset: 24 * 60 * 60 * 1000,
-          futureStatusFromOffset: 0,
-        })
-      );
+      const { docRef } = await setupOooUserStatus(userData[3], today, {
+        currentStatusFromOffset: -24 * 60 * 60 * 1000,
+        currentStatusUntilOffset: 24 * 60 * 60 * 1000,
+        futureStatusFromOffset: 0,
+      });
 
       const response = await chai
         .request(app)
