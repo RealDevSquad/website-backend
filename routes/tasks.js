@@ -14,6 +14,7 @@ const { authorizeAndAuthenticate } = require("../middlewares/authorizeUsersAndSe
 const { APPOWNER, SUPERUSER } = require("../constants/roles");
 const assignTask = require("../middlewares/assignTask");
 const { cacheResponse, invalidateCache } = require("../utils/cache");
+const { CACHE_TTL_24H_MIN } = require("../utils/cache");
 const { ALL_TASKS } = require("../constants/cacheKeys");
 const { verifyCronJob } = require("../middlewares/authorizeBot");
 const { CLOUDFLARE_WORKER, CRON_JOB_HANDLER } = require("../constants/bot");
@@ -35,7 +36,12 @@ const enableDevModeMiddleware = (req, res, next) => {
   }
 };
 
-router.get("/", getTasksValidator, cacheResponse({ invalidationKey: ALL_TASKS, expiry: 10 }), tasks.fetchTasks);
+router.get(
+  "/",
+  getTasksValidator,
+  cacheResponse({ invalidationKey: ALL_TASKS, expiry: CACHE_TTL_24H_MIN }),
+  tasks.fetchTasks
+);
 router.get("/self", authenticate, tasks.getSelfTasks);
 
 router.get("/overdue", authenticate, authorizeRoles([SUPERUSER]), tasks.overdueTasks);
@@ -55,8 +61,8 @@ router.patch(
   updateTask,
   tasks.updateTask
 );
-router.get("/:id/details", tasks.getTask);
-router.get("/:username", tasks.getUserTasks);
+router.get("/:id/details", cacheResponse({ invalidationKey: ALL_TASKS, expiry: CACHE_TTL_24H_MIN }), tasks.getTask);
+router.get("/:username", cacheResponse({ invalidationKey: ALL_TASKS, expiry: CACHE_TTL_24H_MIN }), tasks.getUserTasks);
 
 router.patch(
   "/self/:id",
@@ -89,6 +95,12 @@ router.patch(
 router.get("/users/discord", verifyCronJob, getUsersValidator, tasks.getUsersHandler);
 
 router.post("/migration", authenticate, authorizeRoles([SUPERUSER]), tasks.updateStatus);
-router.post("/orphanTasks", authenticate, authorizeRoles([SUPERUSER]), tasks.orphanTasks);
+router.post(
+  "/orphanTasks",
+  authenticate,
+  authorizeRoles([SUPERUSER]),
+  invalidateCache({ invalidationKeys: [ALL_TASKS] }),
+  tasks.orphanTasks
+);
 
 module.exports = router;
