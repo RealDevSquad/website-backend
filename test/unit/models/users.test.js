@@ -200,6 +200,16 @@ describe("users", function () {
       const result = await users.fetchUser({ discordId: "12345" });
       expect(result.user.roles.archived).to.equal(false);
     });
+
+    it("should not return an archived user from a cached Discord alias", async function () {
+      await userModel.doc(userId0).update({ "roles.archived": true });
+
+      const resultByUsername = await users.fetchUser({ username: userDataArray[0].username });
+      expect(resultByUsername.userExists).to.equal(true);
+
+      const resultByDiscordId = await users.fetchUser({ discordId: userDataArray[0].discordId });
+      expect(resultByDiscordId.userExists).to.equal(false);
+    });
   });
 
   describe("user image verification", function () {
@@ -462,6 +472,19 @@ describe("users", function () {
         expect(userData.roles.in_discord).to.be.equal(false);
         expect(userData.roles.archived).to.be.equal(true);
       });
+    });
+
+    it("should invalidate cached users after archiving them", async function () {
+      const userSnapshot = await userModel.limit(1).get();
+      const userId = userSnapshot.docs[0].id;
+
+      const cachedUser = await users.fetchUser({ userId });
+      expect(cachedUser.user.roles.archived).to.equal(false);
+
+      await users.archiveUserIfNotInDiscord();
+
+      const archivedUser = await users.fetchUser({ userId });
+      expect(archivedUser.user.roles.archived).to.equal(true);
     });
 
     it("should throw an error if firebase batch operation fails", async function () {
@@ -778,6 +801,40 @@ describe("users", function () {
       } catch (error) {
         expect(error.message).to.equal("Database query failed");
       }
+    });
+  });
+
+  describe("fetchUser cache", function () {
+    afterEach(async function () {
+      sinon.restore();
+      await cleanDb();
+    });
+
+    it("should reuse the cached user on repeated lookups for the same id", async function () {
+      await users.addOrUpdate(userDataArray[0]);
+      const original = await users.fetchUser({ username: userDataArray[0].username });
+      expect(original.userExists).to.equal(true);
+      expect(original.user.username).to.equal(userDataArray[0].username);
+
+      // Second lookup must not require a new DB read.
+      const id = original.user.id;
+      const userModelDocStub = sinon.stub(userModel.doc(id), "get");
+      const cached = await users.fetchUser({ userId: id });
+      expect(userModelDocStub.called).to.equal(false);
+      expect(cached.user.username).to.equal(userDataArray[0].username);
+    });
+
+    it("should re-read from DB after the cache for a user is invalidated", async function () {
+      await users.addOrUpdate(userDataArray[1]);
+      const before = await users.fetchUser({ username: userDataArray[1].username });
+      expect(before.userExists).to.equal(true);
+
+      const { pool: userCache } = require("../../../utils/userCache");
+      userCache.clear();
+
+      const afterInvalidate = await users.fetchUser({ username: userDataArray[1].username });
+      expect(afterInvalidate.userExists).to.equal(true);
+      expect(afterInvalidate.user.username).to.equal(userDataArray[1].username);
     });
   });
 });
