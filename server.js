@@ -28,15 +28,19 @@ app.set("port", port);
  * Create HTTP server.
  */
 
-const server = http.createServer(app);
+let server;
 
-/**
- * Listen on provided port, on all network interfaces.
- */
+if (process.env.NODE_ENV !== "test") {
+  server = http.createServer(app);
 
-server.listen(port);
-server.on("error", onError);
-server.on("listening", onListening);
+  /**
+   * Listen on provided port, on all network interfaces.
+   */
+
+  server.listen(port);
+  server.on("error", onError);
+  server.on("listening", onListening);
+}
 
 /**
  * Event listener for HTTP server "error" event.
@@ -76,4 +80,4 @@ function onListening() {
   logger.info(`Express API running on port:${port} with environment:${process.env.NODE_ENV}`);
 }
 
-module.exports = server;
+module.exports = process.env.NODE_ENV === "test" ? app : server;

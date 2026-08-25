@@ -210,6 +210,21 @@ describe("users", function () {
       const resultByDiscordId = await users.fetchUser({ discordId: userDataArray[0].discordId });
       expect(resultByDiscordId.userExists).to.equal(false);
     });
+
+    it("should reject an archived user already stored under a Discord cache key", async function () {
+      const { pool: userCache } = require("../../../utils/userCache");
+      const archivedUser = {
+        ...userDataArray[0],
+        id: userId0,
+        roles: { ...userDataArray[0].roles, archived: true },
+      };
+      await userModel.doc(userId0).update({ "roles.archived": true });
+      userCache.set([`user:discordId:${archivedUser.discordId}`], archivedUser, userId0);
+
+      const result = await users.fetchUser({ discordId: archivedUser.discordId });
+
+      expect(result.userExists).to.equal(false);
+    });
   });
 
   describe("user image verification", function () {
@@ -818,9 +833,10 @@ describe("users", function () {
 
       // Second lookup must not require a new DB read.
       const id = original.user.id;
-      const userModelDocStub = sinon.stub(userModel.doc(id), "get");
+      const documentReferencePrototype = Object.getPrototypeOf(userModel.doc(id));
+      const userModelDocGetSpy = sinon.spy(documentReferencePrototype, "get");
       const cached = await users.fetchUser({ userId: id });
-      expect(userModelDocStub.called).to.equal(false);
+      expect(userModelDocGetSpy.called).to.equal(false);
       expect(cached.user.username).to.equal(userDataArray[0].username);
     });
 

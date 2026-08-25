@@ -1,4 +1,5 @@
 const { expect } = require("chai");
+const sinon = require("sinon");
 const { userCacheStore } = require("../../../utils/userCache");
 
 describe("userCacheStore", function () {
@@ -15,6 +16,10 @@ describe("userCacheStore", function () {
 
   beforeEach(function () {
     cache = userCacheStore();
+  });
+
+  afterEach(function () {
+    sinon.restore();
   });
 
   describe("get / set", function () {
@@ -71,6 +76,34 @@ describe("userCacheStore", function () {
       cache.set([`user:userId:${userId}`], user, userId);
       cache.invalidateUser("unknown");
       expect(cache.get(`user:userId:${userId}`)).to.deep.equal(user);
+    });
+  });
+
+  describe("expiry", function () {
+    const expiryTimeMs = 24 * 60 * 60 * 1000;
+
+    it("should evict an expired alias without evicting a refreshed alias", function () {
+      const clock = sinon.useFakeTimers();
+      cache.set([`user:userId:${userId}`, "user:username:ankur"], user, userId);
+
+      clock.tick(expiryTimeMs / 2);
+      cache.set(["user:username:ankur"], user, userId);
+
+      clock.tick(expiryTimeMs / 2 + 1);
+      expect(cache.get(`user:userId:${userId}`)).to.equal(null);
+      expect(cache.get("user:username:ankur")).to.deep.equal(user);
+    });
+
+    it("should clean untouched expired entries during later cache operations", function () {
+      const clock = sinon.useFakeTimers();
+      cache.set([`user:userId:${userId}`, "user:username:ankur"], user, userId);
+
+      clock.tick(expiryTimeMs + 1);
+      cache.set(["user:userId:active"], { id: "active" }, "active");
+
+      clock.setSystemTime(0);
+      expect(cache.get("user:username:ankur")).to.equal(null);
+      expect(cache.get("user:userId:active")).to.deep.equal({ id: "active" });
     });
   });
 

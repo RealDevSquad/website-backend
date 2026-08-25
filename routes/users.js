@@ -45,7 +45,7 @@ router.get("/self", authenticate, users.getSelfDetails);
 router.get("/isDeveloper", authenticate, users.isDeveloper);
 router.get("/isUsernameAvailable/:username", authenticate, users.getUsernameAvailabilty);
 router.get("/username", authenticate, userValidator.validateGenerateUsernameQuery, users.generateUsername);
-router.get("/chaincode", authenticate, users.generateChaincode);
+router.get("/chaincode", authenticate, invalidateCache({ invalidationKeys: [ALL_USERS] }), users.generateChaincode);
 // TODO: Have a discussion, if this '/search' needs to be open or protected.
 // For now making it protected and super_user only to sort the high firestore read issues, for usersStatus collection
 router.get(
@@ -65,7 +65,13 @@ router.patch(
 );
 router.get("/:username", cacheResponse({ invalidationKey: ALL_USERS, expiry: CACHE_TTL_24H_MIN }), users.getUser);
 router.get("/:userId/intro", authenticate, authorizeRoles([SUPERUSER]), users.getUserIntro);
-router.put("/self/intro", authenticate, userValidator.validateJoinData, users.addUserIntro); // This route is being deprecated soon, please use alternate available route `/users/:userId/intro`.
+router.put(
+  "/self/intro",
+  authenticate,
+  invalidateCache({ invalidationKeys: [ALL_USERS] }),
+  userValidator.validateJoinData,
+  users.addUserIntro
+); // This route is being deprecated soon, please use alternate available route `/users/:userId/intro`.
 router.put(
   "/:userId/intro",
   devFlagMiddleware,

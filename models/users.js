@@ -112,8 +112,8 @@ const addOrUpdate = async (userData, userId = null, devFeatureFlag) => {
           meta: { userId },
           body: userData,
         };
-        await addLog(logData.type, logData.meta, logData.body);
         userCache.invalidateUser(userId);
+        await addLog(logData.type, logData.meta, logData.body);
       }
 
       return { isNewUser, userId };
@@ -402,10 +402,14 @@ const fetchUser = async ({ userId = null, username = null, githubUsername = null
 
     const cachedUser = cacheKeys.length === 1 ? userCache.get(cacheKeys[0]) : null;
     if (cachedUser) {
-      return {
-        userExists: true,
-        user: cachedUser,
-      };
+      if (discordId && cachedUser.roles?.archived !== false) {
+        userCache.invalidateUser(cachedUser.id);
+      } else {
+        return {
+          userExists: true,
+          user: cachedUser,
+        };
+      }
     }
 
     let userData, id;
