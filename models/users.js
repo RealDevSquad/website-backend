@@ -452,7 +452,9 @@ const fetchUser = async ({ userId = null, username = null, githubUsername = null
       const aliasKeys = [`user:userId:${id}`];
       if (userData.username) aliasKeys.push(`user:username:${userData.username}`);
       if (userData.github_id) aliasKeys.push(`user:github:${userData.github_id}`);
-      if (userData.discordId) aliasKeys.push(`user:discordId:${userData.discordId}`);
+      if (userData.discordId && userData.roles?.archived === false) {
+        aliasKeys.push(`user:discordId:${userData.discordId}`);
+      }
       if (userData.email) aliasKeys.push(`user:email:${userData.email}`);
       userCache.set(aliasKeys, { ...userData, id }, id);
     }
