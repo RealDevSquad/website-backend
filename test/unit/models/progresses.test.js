@@ -2,7 +2,11 @@ const chai = require("chai");
 const sinon = require("sinon");
 const { expect } = chai;
 const cleanDb = require("../../utils/cleanDb");
-const { addUserDetailsToProgressDocs, getPaginatedProgressDocument } = require("../../../models/progresses");
+const {
+  addUserDetailsToProgressDocs,
+  getPaginatedProgressDocument,
+  createProgressDocument,
+} = require("../../../models/progresses");
 const fireStore = require("../../../utils/firestore");
 const progressesCollection = fireStore.collection("progresses");
 const { stubbedModelTaskProgressData, stubbedModelProgressData } = require("../../fixtures/progress/progresses");
@@ -139,6 +143,54 @@ describe("progressModel", function () {
       const result = await addUserDetailsToProgressDocs(mockProgressDocs);
 
       expect(result).to.deep.equal([{ userId: "userIdNotExists", taskId: 101, userData: null }]);
+    });
+  });
+
+  describe("createProgressDocument", function () {
+    const buildUserProgress = (userId) => ({
+      type: "user",
+      userId,
+      completed: "Implemented the fix",
+      planned: "Write regression tests",
+      blockers: "None",
+    });
+
+    it("stores exactly one progress document when two requests race for the same day", async function () {
+      const userId = "raceConditionUserId";
+
+      const results = await Promise.allSettled([
+        createProgressDocument(buildUserProgress(userId)),
+        createProgressDocument(buildUserProgress(userId)),
+      ]);
+
+      const fulfilled = results.filter((result) => result.status === "fulfilled");
+      const rejected = results.filter((result) => result.status === "rejected");
+
+      expect(fulfilled).to.have.lengthOf(1);
+      expect(rejected).to.have.lengthOf(1);
+      expect(rejected[0].reason.status).to.equal(409);
+      expect(rejected[0].reason.message).to.equal("User Progress for the day has already been created.");
+
+      const snapshot = await progressesCollection.where("type", "==", "user").where("userId", "==", userId).get();
+      expect(snapshot.size).to.equal(1);
+    });
+
+    it("throws a Conflict when a progress document already exists for the user on the same day", async function () {
+      const userId = "sequentialUserId";
+
+      const { data } = await createProgressDocument(buildUserProgress(userId));
+      expect(data.userId).to.equal(userId);
+
+      try {
+        await createProgressDocument(buildUserProgress(userId));
+        throw new Error("Test failed: expected a Conflict error to be thrown.");
+      } catch (err) {
+        expect(err.status).to.equal(409);
+        expect(err.message).to.equal("User Progress for the day has already been created.");
+      }
+
+      const snapshot = await progressesCollection.where("type", "==", "user").where("userId", "==", userId).get();
+      expect(snapshot.size).to.equal(1);
     });
   });
 });
