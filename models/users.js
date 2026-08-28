@@ -29,6 +29,7 @@ const { AUTHORITIES } = require("../constants/authorities");
 const { formatUsername } = require("../utils/username");
 const { logType } = require("../constants/logs");
 const { addLog } = require("../services/logService");
+const { pool: userCache } = require("../utils/userCache");
 
 /**
  * Archive users by setting the roles.archived field to true.
@@ -62,6 +63,9 @@ const archiveUsers = async (usersData) => {
 
   try {
     await batch.commit();
+    usersBatch.forEach(({ id }) => {
+      userCache.invalidateUser(id);
+    });
     summary.totalUsersArchived += usersData.length;
     summary.updatedUserDetails = [...usersBatch];
     return {
@@ -108,6 +112,7 @@ const addOrUpdate = async (userData, userId = null, devFeatureFlag) => {
           meta: { userId },
           body: userData,
         };
+        userCache.invalidateUser(userId);
         await addLog(logData.type, logData.meta, logData.body);
       }
 
@@ -143,6 +148,7 @@ const addOrUpdate = async (userData, userId = null, devFeatureFlag) => {
       await addLog(logData.type, logData.meta, logData.body);
 
       const data = user.docs[0].data();
+      userCache.invalidateUser(userIdToUpdate);
 
       const rolesList = Object.values(AUTHORITIES);
       const validRole = rolesList.find((roleKey) => {
@@ -386,6 +392,26 @@ const fetchUsers = async (usernames = []) => {
  */
 const fetchUser = async ({ userId = null, username = null, githubUsername = null, discordId = null, email = null }) => {
   try {
+    // Cache lookup keys mirror the query branches below.
+    const cacheKeys = [];
+    if (userId) cacheKeys.push(`user:userId:${userId}`);
+    if (username) cacheKeys.push(`user:username:${username}`);
+    if (githubUsername) cacheKeys.push(`user:github:${githubUsername}`);
+    if (discordId) cacheKeys.push(`user:discordId:${discordId}`);
+    if (email) cacheKeys.push(`user:email:${email}`);
+
+    const cachedUser = cacheKeys.length === 1 ? userCache.get(cacheKeys[0]) : null;
+    if (cachedUser) {
+      if (discordId && cachedUser.roles?.archived !== false) {
+        userCache.invalidateUser(cachedUser.id);
+      } else {
+        return {
+          userExists: true,
+          user: cachedUser,
+        };
+      }
+    }
+
     let userData, id;
     if (username) {
       const user = await userModel.where("username", "==", username).limit(1).get();
@@ -424,6 +450,19 @@ const fetchUser = async ({ userId = null, username = null, githubUsername = null
         }
       }
     }
+
+    if (userData && id) {
+      // Seed the cache with every alias key derivable from the fetched doc.
+      const aliasKeys = [`user:userId:${id}`];
+      if (userData.username) aliasKeys.push(`user:username:${userData.username}`);
+      if (userData.github_id) aliasKeys.push(`user:github:${userData.github_id}`);
+      if (userData.discordId && userData.roles?.archived === false) {
+        aliasKeys.push(`user:discordId:${userData.discordId}`);
+      }
+      if (userData.email) aliasKeys.push(`user:email:${userData.email}`);
+      userCache.set(aliasKeys, { ...userData, id }, id);
+    }
+
     return {
       userExists: !!userData,
       user: {
@@ -436,7 +475,6 @@ const fetchUser = async ({ userId = null, username = null, githubUsername = null
     throw err;
   }
 };
-
 /**
  * Sets the incompleteUserDetails field of passed UserId to false
  *
@@ -446,6 +484,7 @@ const setIncompleteUserDetails = async (userId) => {
   const userRef = userModel.doc(userId);
   const doc = await userRef.get();
   if (doc.exists) {
+    userCache.invalidateUser(userId);
     return userRef.update({
       incompleteUserDetails: false,
       updated_at: Date.now(),
@@ -566,6 +605,7 @@ const updateUserPicture = async (image, userId) => {
       picture: image,
       updated_at: Date.now(),
     });
+    userCache.invalidateUser(userId);
   } catch (err) {
     logger.error("Error updating user picture data", err);
     throw err;
@@ -916,19 +956,24 @@ const getUsersByRole = async (role) => {
 const updateUsersInBatch = async (usersData) => {
   try {
     const bulkWriter = firestore.bulkWriter();
+    const userIds = [];
 
     usersData.forEach((user) => {
       const id = user.id;
       delete user.id;
+      userIds.push(id);
       bulkWriter.update(userModel.doc(id), { ...user, updated_at: Date.now() });
     });
 
     await bulkWriter.close();
+
+    userIds.forEach((id) => {
+      userCache.invalidateUser(id);
+    });
   } catch (err) {
     logger.error("Firebase batch operation failed!");
   }
 };
-
 /**
  * Fetch users based on document key and value.
  * @param documentKey {String} - Model field path.
@@ -1028,6 +1073,9 @@ const updateUsernamesInBatch = async (usersData) => {
   try {
     await batch.commit();
     summary.totalUpdatedUsernames += usersData.length;
+    usersBatch.forEach((id) => {
+      userCache.invalidateUser(id);
+    });
     return { ...summary };
   } catch (err) {
     logger.error("Firebase batch Operation Failed!");

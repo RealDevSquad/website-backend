@@ -2,6 +2,7 @@ const config = require("config");
 const logger = require("../utils/logger");
 const firestore = require("../utils/firestore");
 const { fetchAllUsers } = require("../models/users");
+const { pool: userCache } = require("../utils/userCache");
 const { generateAuthTokenForCloudflare, generateCloudFlareHeaders } = require("../utils/discord-actions");
 const userModel = firestore.collection("users");
 const DISCORD_BASE_URL = config.get("services.discordBot.baseUrl");
@@ -59,6 +60,9 @@ const setInDiscordFalseScript = async () => {
     updateUsersPromises.push(userModel.doc(id).update(userData));
   });
   await Promise.all(updateUsersPromises);
+  users.forEach((user) => {
+    userCache.invalidateUser(user.id);
+  });
 };
 
 const addRoleToUser = async (userid, roleid) => {
