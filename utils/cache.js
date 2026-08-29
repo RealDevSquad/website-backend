@@ -1,6 +1,7 @@
 const CACHE_EXPIRY_TIME_MIN = 0.1;
 const CACHE_SIZE_MB = 10;
 const minutesToMilliseconds = (minutes) => minutes * 60000;
+const CACHE_TTL_24H_MIN = 24 * 60;
 
 /**
  * Cache pool to get and store API responses
@@ -69,7 +70,14 @@ const cachePool = (opt = { maximumSize: CACHE_SIZE_MB }) => {
     }
   };
 
-  return { get, set, evict, hits, cacheStore };
+  /**
+   * Remove every entry from the cache store.
+   */
+  const clear = () => {
+    cacheStore.clear();
+  };
+
+  return { get, set, evict, clear, hits, cacheStore };
 };
 /**
  * A MultiMap implementation where each key maps to set of unique values.
@@ -126,7 +134,14 @@ const cachedKeysStore = () => {
     }
   };
 
-  return { getCachedKeys, addCachedKey, removeModelKey, removeCachedKey };
+  /**
+   * Remove every modelKey and its associated cached keys.
+   */
+  const clear = () => {
+    keyStore.clear();
+  };
+
+  return { getCachedKeys, addCachedKey, removeModelKey, removeCachedKey, clear };
 };
 
 // Initialize cache pool.
@@ -231,4 +246,12 @@ const invalidateCache = (options = {}) => {
   };
 };
 
-module.exports = { cacheResponse, invalidateCache, generateCacheKey, cachedKeysStore };
+module.exports = {
+  cacheResponse,
+  invalidateCache,
+  generateCacheKey,
+  cachedKeysStore,
+  pool,
+  cachedKeys,
+  CACHE_TTL_24H_MIN,
+};

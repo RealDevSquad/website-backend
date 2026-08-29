@@ -8,7 +8,7 @@ const logsData = require("../../fixtures/logs/archievedUsers");
 const { requestsLogs } = require("../../fixtures/logs/requests");
 const app = require("../../../server");
 const Sinon = require("sinon");
-const { INTERNAL_SERVER_ERROR } = require("../../../constants/errorMessages");
+const { INTERNAL_SERVER_ERROR, SOMETHING_WENT_WRONG } = require("../../../constants/errorMessages");
 const userData = require("../../fixtures/user/user")();
 const addUser = require("../../utils/addUser");
 const cookieName = config.get("userToken.cookieName");
@@ -59,9 +59,9 @@ describe("Logs", function () {
     let jwt;
 
     beforeEach(async function () {
+      await cleanDb();
       const superUserId = await addUser(superUser);
       jwt = authService.generateAuthToken({ userId: superUserId });
-      await cleanDb();
     });
 
     afterEach(function () {
@@ -72,10 +72,10 @@ describe("Logs", function () {
       addLogsStub = Sinon.stub(logsQuery, "fetchLogs");
       addLogsStub.throws(new Error(INTERNAL_SERVER_ERROR));
 
-      addUser(userToBeMadeMember).then(() => {
-        const res = chai.request(app).get("/logs/archived-details").set("cookie", `${cookieName}=${jwt}`).send();
-        expect(res.body.message).to.equal(INTERNAL_SERVER_ERROR);
-      });
+      await addUser(userToBeMadeMember);
+      const res = await chai.request(app).get("/logs/archived-details").set("cookie", `${cookieName}=${jwt}`).send();
+
+      expect(res.body.message).to.equal(SOMETHING_WENT_WRONG);
     });
 
     it("Should return empty array if no logs found", async function () {
@@ -134,6 +134,7 @@ describe("Logs", function () {
 
   describe("GET /logs", function () {
     before(async function () {
+      await cleanDb();
       await addLogs();
       const tasksPromise = tasksData.map(async (task) => {
         await tasks.updateTask(task);
@@ -168,7 +169,7 @@ describe("Logs", function () {
       const result = await logsQuery.fetchAllLogs({ size: 3, page: PAGE });
       expect(result.allLogs).to.have.lengthOf(3);
       const nextData = await logsQuery.fetchAllLogs({ next: result.next });
-      expect(nextData.allLogs).to.have.lengthOf(4);
+      expect(nextData.allLogs).to.have.lengthOf(3);
       expect(nextData).to.have.any.key("prev");
       expect(nextData).to.have.any.key("next");
       // eslint-disable-next-line no-unused-expressions

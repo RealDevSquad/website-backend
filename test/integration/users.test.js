@@ -1908,8 +1908,8 @@ describe("Users", function () {
       Sinon.restore();
     });
 
-    it("Should update the user", function (done) {
-      chai
+    it("Should update the user", async function () {
+      const res = await chai
         .request(app)
         .patch(`/users/${userId}?profile=true&dev=true`)
         .set("cookie", `${cookieName}=${jwt}`)
@@ -1917,16 +1917,9 @@ describe("Users", function () {
           first_name: "Test",
           last_name: "User",
           role: "developer",
-        })
-        .end((err, res) => {
-          if (err) {
-            return done(err);
-          }
-
-          expect(res).to.have.status(204);
-
-          return done();
         });
+
+      expect(res, JSON.stringify(res.body)).to.have.status(204);
     });
 
     it("Should update the user status", function (done) {
@@ -3003,8 +2996,8 @@ describe("Users", function () {
       );
     });
 
-    afterEach(function () {
-      cleanDb();
+    afterEach(async function () {
+      await cleanDb();
       Sinon.restore();
     });
 
@@ -3034,7 +3027,7 @@ describe("Users", function () {
       const res = await chai
         .request(app)
         .patch("/users/self?dev=true")
-        .set("cookie", `${cookieName}=${jwt}`)
+        .set("cookie", `${cookieName}=${jwtoken}`)
         .send({
           disabledRoles: ["super_user"],
         });
@@ -3046,7 +3039,7 @@ describe("Users", function () {
         disabled_roles: ["super_user"],
       });
 
-      const res2 = await chai.request(app).get("/users/self").set("cookie", `${cookieName}=${jwt}`);
+      const res2 = await chai.request(app).get("/users/self").set("cookie", `${cookieName}=${jwtoken}`);
 
       expect(res2).to.have.status(200);
       expect(res2.body).to.be.an("object");
@@ -3057,7 +3050,7 @@ describe("Users", function () {
       const res = await chai
         .request(app)
         .patch("/users/self?dev=true")
-        .set("cookie", `${cookieName}=${jwt}`)
+        .set("cookie", `${cookieName}=${jwtoken}`)
         .send({
           disabledRoles: ["super_user", "member"],
         });
@@ -3069,7 +3062,7 @@ describe("Users", function () {
         disabled_roles: ["super_user", "member"],
       });
 
-      const res2 = await chai.request(app).get("/users/self").set("cookie", `${cookieName}=${jwt}`);
+      const res2 = await chai.request(app).get("/users/self").set("cookie", `${cookieName}=${jwtoken}`);
 
       expect(res2).to.have.status(200);
       expect(res2.body).to.be.an("object");
@@ -3078,7 +3071,7 @@ describe("Users", function () {
     });
 
     it("Should return 200 when disabled_roles is being set to [], member in userObject", async function () {
-      const res = await chai.request(app).patch("/users/self?dev=true").set("cookie", `${cookieName}=${jwt}`).send({
+      const res = await chai.request(app).patch("/users/self?dev=true").set("cookie", `${cookieName}=${jwtoken}`).send({
         disabledRoles: [],
       });
       expect(res).to.have.status(200);
@@ -3088,7 +3081,7 @@ describe("Users", function () {
         disabled_roles: [],
       });
 
-      const res2 = await chai.request(app).get("/users/self").set("cookie", `${cookieName}=${jwt}`);
+      const res2 = await chai.request(app).get("/users/self").set("cookie", `${cookieName}=${jwtoken}`);
 
       expect(res2).to.have.status(200);
       expect(res2.body).to.be.an("object");
@@ -3096,7 +3089,7 @@ describe("Users", function () {
     });
 
     it("Should return 403 when disabled_roles is being set to [], member in userObject without the dev flag", async function () {
-      const res = await chai.request(app).patch("/users/self").set("cookie", `${cookieName}=${jwt}`).send({
+      const res = await chai.request(app).patch("/users/self").set("cookie", `${cookieName}=${jwtoken}`).send({
         disabledRoles: [],
       });
       expect(res).to.have.status(403);
@@ -3112,7 +3105,7 @@ describe("Users", function () {
           json: () => Promise.resolve({ error: "🚫 Bad Request Signature" }),
         })
       );
-      const res = await chai.request(app).patch("/users/self").set("cookie", `${cookieName}=${jwt}`).send({
+      const res = await chai.request(app).patch("/users/self").set("cookie", `${cookieName}=${jwtoken}`).send({
         disabledRoles: [],
       });
       expect(res).to.have.status(404);
@@ -3123,7 +3116,7 @@ describe("Users", function () {
       const res = await chai
         .request(app)
         .patch("/users/self?dev=true")
-        .set("cookie", `${cookieName}=${jwt}`)
+        .set("cookie", `${cookieName}=${jwtoken}`)
         .send({
           disabledRoles: ["admin"],
         });

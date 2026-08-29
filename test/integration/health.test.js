@@ -9,6 +9,10 @@ const addUser = require("../utils/addUser");
 const config = require("config");
 const cookieName = config.get("userToken.cookieName");
 describe("health", function () {
+  it("uses the Express app so chai-http cannot close the shared server", function () {
+    expect(app).to.be.a("function");
+  });
+
   it("should return uptime from the healthcheck API", function (done) {
     chai
       .request(app)
@@ -51,18 +55,10 @@ describe("health", function () {
     const userId = await addUser();
     const jwt = authService.generateAuthToken({ userId });
 
-    chai
-      .request(app)
-      .get("/healthcheck/v2")
-      .set("cookie", `${cookieName}=${jwt}`)
-      .end((err, res) => {
-        if (err) {
-          throw err;
-        }
+    const res = await chai.request(app).get("/healthcheck/v2").set("cookie", `${cookieName}=${jwt}`);
 
-        expect(res).to.have.status(200);
-        expect(res.body).to.be.an("object");
-        expect(res.body).to.have.property("uptime").that.is.a("number");
-      });
+    expect(res).to.have.status(200);
+    expect(res.body).to.be.an("object");
+    expect(res.body).to.have.property("uptime").that.is.a("number");
   });
 });
