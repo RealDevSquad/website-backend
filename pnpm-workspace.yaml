@@ -1,3 +1,7 @@
+# Share one content-addressable store + global virtual store across all
+# checkouts so git worktrees get near-instant installs.
+# See https://pnpm.io/git-worktrees and https://pnpm.io/global-virtual-store
+virtualStoreType: global
 # Supply-chain hardening (see https://pnpm.io/supply-chain-security).
 # Only allow dependencies from the npm registry.
 # Block git links and direct download URLs, even deep in the dependency tree.
