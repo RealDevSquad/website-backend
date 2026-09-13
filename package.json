@@ -76,7 +76,6 @@
     "nock": "14.0.17",
     "nodemon": "3.1.14",
     "nyc": "18.0.0",
-    "pre-commit": "2.0.0",
     "prettier": "3.9.6",
     "sinon": "22.1.0",
     "ts-node": "10.9.2",
@@ -87,9 +86,6 @@
     "node": "26.8.1",
     "pnpm": ">=12 <13"
   },
-  "pre-commit": [
-    "lint"
-  ],
   "devEngines": {
     "runtime": {
       "name": "node",

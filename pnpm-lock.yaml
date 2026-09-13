@@ -345,9 +345,6 @@ importers:
       nyc:
         specifier: 18.0.0
         version: 18.0.0(supports-color@5.5.0)
-      pre-commit:
-        specifier: 2.0.0
-        version: 2.0.0
       prettier:
         specifier: 3.9.6
         version: 3.9.6
@@ -3307,10 +3304,6 @@ packages:
   isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
 
-  isexe@3.1.5:
-    resolution: {integrity: sha512-6B3tLtFqtQS4ekarvLVMZ+X+VlvQekbe4taUkf/rhVO3d/h0M2rfARm/pXLcPEsjjMsFgrFgSrhQIxcSVrBz8w==}
-    engines: {node: '>=18'}
-
   isexe@4.0.0:
     resolution: {integrity: sha512-FFUtZMpoZ8RqHS3XeXEmHWLA4thH+ZxCv2lOiPIn1Xc7CxrqhWzNSDzD+/chS/zbYezmiwWLdQC09JdQKmthOw==}
     engines: {node: '>=20'}
@@ -4319,10 +4312,6 @@ packages:
   pprof-format@2.3.1:
     resolution: {integrity: sha512-y51Z83qG2vEQBACPu6lkGFREVkHwQaCaNDdSFEMLIqSo3bmpADsbP6J3F2SSk7tYB741oTQ9Kt5YAdQsmiCRkA==}
 
-  pre-commit@2.0.0:
-    resolution: {integrity: sha512-gStVX9Yji5PjN4Yl1/4fSc9LPzwdGkkiSgarug873vfatIH47WIXPa+rcE8FK9JrbsMGuZji2Ih3V+G+Oa8eww==}
-    engines: {node: '>=16.13.0'}
-
   prebuildify@6.0.1:
     resolution: {integrity: sha512-8Y2oOOateom/s8dNBsGIcnm6AxPmLH4/nanQzL5lQMU+sC0CMhzARZHizwr36pUPLdvBnOkCNQzxg4djuFSgIw==}
     hasBin: true
@@ -5272,11 +5261,6 @@ packages:
   which@2.0.2:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
     engines: {node: '>= 8'}
-    hasBin: true
-
-  which@4.0.0:
-    resolution: {integrity: sha512-GlaYyEb07DPxYCKhKzplCWBJtvxZcZMrL+4UkrTSJHHPyZU4mYYTv3qaOe77H7EODLSSopAUFAc6W8U4yqvscg==}
-    engines: {node: ^16.13.0 || >=18.0.0}
     hasBin: true
 
   which@7.0.0:
@@ -8969,8 +8953,6 @@ snapshots:
 
   isexe@2.0.0: {}
 
-  isexe@3.1.5: {}
-
   isexe@4.0.0:
     optional: true
 
@@ -10000,11 +9982,6 @@ snapshots:
 
   pprof-format@2.3.1:
     optional: true
-
-  pre-commit@2.0.0:
-    dependencies:
-      cross-spawn: 7.0.6
-      which: 4.0.0
 
   prebuildify@6.0.1:
     dependencies:
@@ -11163,10 +11140,6 @@ snapshots:
   which@2.0.2:
     dependencies:
       isexe: 2.0.0
-
-  which@4.0.0:
-    dependencies:
-      isexe: 3.1.5
 
   which@7.0.0:
     dependencies:
