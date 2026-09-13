@@ -29,7 +29,7 @@
     "debug": "4.4.3",
     "express": "5.2.1",
     "express-boom": "3.0.0",
-    "firebase-admin": "14.3.0",
+    "firebase-admin": "14.4.0",
     "helmet": "8.3.0",
     "http-errors": "~2.0.1",
     "joi": "18.2.8",
