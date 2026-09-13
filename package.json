@@ -69,7 +69,7 @@
     "eslint-plugin-prettier": "5.5.6",
     "eslint-plugin-promise": "7.3.0",
     "eslint-plugin-security": "4.0.1",
-    "firebase-tools": "15.29.0",
+    "firebase-tools": "15.30.0",
     "globals": "17.12.0",
     "husky": "^9.1.7",
     "mocha": "12.0.0",
