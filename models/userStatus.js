@@ -1,6 +1,5 @@
-/* eslint-disable no-console */
 const { Forbidden, NotFound } = require("http-errors");
-const admin = require("firebase-admin");
+const { Timestamp } = require("firebase-admin/firestore");
 const firestore = require("../utils/firestore");
 const {
   getTomorrowTimeStamp,
@@ -110,7 +109,7 @@ const addGroupIdleRoleToDiscordUser = async (userId) => {
           await memberRoleModel.add({
             roleid: groupIdleRoleId,
             userid: discordId,
-            date: admin.firestore.Timestamp.fromDate(new Date()),
+            date: Timestamp.fromDate(new Date()),
           });
         }
 
@@ -331,7 +330,7 @@ const updateAllUserStatus = async () => {
     }
     if (batch._ops.length > 100) {
       logger.info(
-        `Warning: More than 100 User Status documents to update. The max limit permissible is 500. Refer https://github.com/Real-Dev-Squad/website-backend/issues/890 for more details.`
+        `Warning: More than 100 User Status documents to update. The max limit permissible is 500. Refer https://github.com/Real-Dev-Squad/website-backend/issues/890 for more details.`,
       );
     }
     await batch.commit();
@@ -650,7 +649,7 @@ const cancelOooStatus = async (userId) => {
     const { futureStatus, ...docData } = userStatusDocument.data();
     if (docData.currentStatus.state !== userState.OOO) {
       throw new Forbidden(
-        `The ${userState.OOO} Status cannot be canceled because the current status is ${docData.currentStatus.state}.`
+        `The ${userState.OOO} Status cannot be canceled because the current status is ${docData.currentStatus.state}.`,
       );
     }
     try {
@@ -731,7 +730,7 @@ const getUserStatusForUserIds = async (userIds) => {
         const data = doc.data();
         statusMap[data.userId] = { id: doc.id, ...data };
       });
-    })
+    }),
   );
 
   return statusMap;
