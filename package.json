@@ -13,7 +13,8 @@
     "test-integration": "sh scripts/tests/testIntegration.sh",
     "test-unit": "sh scripts/tests/testUnit.sh",
     "test": "pnpm lint && pnpm test-unit && pnpm test-integration",
-    "tdd:watch": "sh scripts/tests/tdd.sh"
+    "tdd:watch": "sh scripts/tests/tdd.sh",
+    "prepare": "husky"
   },
   "dependencies": {
     "@aws-sdk/client-identitystore": "3.1127.0",
@@ -70,11 +71,11 @@
     "eslint-plugin-security": "4.0.1",
     "firebase-tools": "15.29.0",
     "globals": "17.12.0",
+    "husky": "^9.1.7",
     "mocha": "12.0.0",
     "nock": "14.0.17",
     "nodemon": "3.1.14",
     "nyc": "18.0.0",
-    "pre-commit": "2.0.0",
     "prettier": "3.9.6",
     "sinon": "22.1.0",
     "ts-node": "10.9.2",
@@ -85,9 +86,6 @@
     "node": "26.8.1",
     "pnpm": ">=12 <13"
   },
-  "pre-commit": [
-    "lint"
-  ],
   "devEngines": {
     "runtime": {
       "name": "node",

@@ -35,9 +35,6 @@ allowBuilds:
   # Needed at runtime, no backup plan if skipped. Keep allowed.
   # farmhash: used directly by firebase-admin.
   farmhash: true
-  # pre-commit: sets up the git hook that runs lint before each commit.
-  # Blocking it would silently turn the hook off.
-  pre-commit: true
   # Not needed, safe to block.
   # re2: only used by the firebase dev server, which works fine without it.
   re2: false
