@@ -171,8 +171,8 @@ importers:
   .:
     dependencies:
       '@aws-sdk/client-identitystore':
-        specifier: 3.1127.0
-        version: 3.1127.0
+        specifier: 3.1131.0
+        version: 3.1131.0
       '@google-cloud/firestore':
         specifier: 8.7.1
         version: 8.7.1(supports-color@5.5.0)
@@ -376,8 +376,8 @@ packages:
   '@apphosting/common@0.0.8':
     resolution: {integrity: sha512-RJu5gXs2HYV7+anxpVPpp04oXeuHbV3qn402AdXVlnuYM/uWo7aceqmngpfp6Bi376UzRqGjfpdwFHxuwsEGXQ==}
 
-  '@aws-sdk/client-identitystore@3.1127.0':
-    resolution: {integrity: sha512-oLr3ZIK0/9NfHrZTPZjpoKcF5jUKnXrl58ge9Tb7AbVVPX1ureMMxzaOt82skqdyEwDPGcxTEGu0+k3zsL5fkw==}
+  '@aws-sdk/client-identitystore@3.1131.0':
+    resolution: {integrity: sha512-1pBNA4oURGFV4yq7w4EkQ2dK00WHKbiBxWE2GpxK4qup+iAaVBSoCK/a4dPU0/z12tN0XfaWvEEapleovGbylA==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/core@3.978.0':
@@ -5427,7 +5427,7 @@ snapshots:
 
   '@apphosting/common@0.0.8': {}
 
-  '@aws-sdk/client-identitystore@3.1127.0':
+  '@aws-sdk/client-identitystore@3.1131.0':
     dependencies:
       '@aws-sdk/core': 3.978.0
       '@aws-sdk/credential-provider-node': 3.972.83
