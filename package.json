@@ -13,7 +13,8 @@
     "test-integration": "sh scripts/tests/testIntegration.sh",
     "test-unit": "sh scripts/tests/testUnit.sh",
     "test": "pnpm lint && pnpm test-unit && pnpm test-integration",
-    "tdd:watch": "sh scripts/tests/tdd.sh"
+    "tdd:watch": "sh scripts/tests/tdd.sh",
+    "prepare": "husky"
   },
   "dependencies": {
     "@aws-sdk/client-identitystore": "3.1127.0",
@@ -70,6 +71,7 @@
     "eslint-plugin-security": "4.0.1",
     "firebase-tools": "15.29.0",
     "globals": "17.12.0",
+    "husky": "^9.1.7",
     "mocha": "12.0.0",
     "nock": "14.0.17",
     "nodemon": "3.1.14",
