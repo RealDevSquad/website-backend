@@ -153,6 +153,18 @@ export FIRESTORE_EMULATOR_HOST="localhost:<Firebase emulator PORT>"
 - Make sure to close the emulator window after running the tests in order to avoid the blocking of the port for the next tests to run.
 - For e.g - After running the integration tests, close the emulator window and then run the command for unit tests.
 
+## Pre-commit Hook
+
+This project uses [husky](https://typicode.github.io/husky/) to run a pre-commit hook that automatically lints your changes before each commit. The hook runs `pnpm lint`.
+
+Husky is set up automatically when you run `pnpm install` (via the `prepare` script in `package.json`). No manual configuration is needed.
+
+If you want to bypass the hook for a specific commit (not recommended), you can use:
+
+```shell
+git commit --no-verify
+```
+
 ## Pull request guidelines
 
 - Ensure that the tests pass locally before raising a PR.
