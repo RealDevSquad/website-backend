@@ -228,8 +228,8 @@ importers:
         specifier: 4.18.1
         version: 4.18.1
       morgan:
-        specifier: 1.12.0
-        version: 1.12.0(supports-color@5.5.0)
+        specifier: 1.12.1
+        version: 1.12.1(supports-color@5.5.0)
       multer:
         specifier: 2.3.0
         version: 2.3.0
@@ -3749,8 +3749,8 @@ packages:
   moo@0.5.3:
     resolution: {integrity: sha512-m2fmM2dDm7GZQsY7KK2cme8agi+AAljILjQnof7p1ZMDe6dQ4bdnSMx0cPppudoeNv5hEFQirN6u+O4fDE0IWA==}
 
-  morgan@1.12.0:
-    resolution: {integrity: sha512-OHpTRQwn2ezasILW8iKe+Yww1XsfWsZIpUOLF7RDb2g5GwO3trPaRwi7+8BDiJ7HFx2Kg2mfUdCBcVhwYlOz2g==}
+  morgan@1.12.1:
+    resolution: {integrity: sha512-tljKC0ex20AjO58Ob/eZ53JloycbVswbVNCHx6V6VLGzqt/w8dIynVGL0G8qVjNKwiA7sYSogCrN6QtJ82IV+g==}
     engines: {node: '>= 0.8.0'}
 
   ms@2.0.0:
@@ -8172,7 +8172,7 @@ snapshots:
       marked-terminal: 7.3.0(marked@13.0.3)
       mime: 2.6.0
       minimatch: 3.1.5
-      morgan: 1.12.0(supports-color@5.5.0)
+      morgan: 1.12.1(supports-color@5.5.0)
       node-fetch: 2.7.0
       open: 6.4.0
       ora: 5.4.1
@@ -9464,7 +9464,7 @@ snapshots:
 
   moo@0.5.3: {}
 
-  morgan@1.12.0(supports-color@5.5.0):
+  morgan@1.12.1(supports-color@5.5.0):
     dependencies:
       basic-auth: 2.0.1
       debug: 2.6.9(supports-color@5.5.0)
@@ -10684,7 +10684,7 @@ snapshots:
       lodash: 4.18.1
       mime-types: 2.1.35
       minimatch: 6.2.3
-      morgan: 1.12.0(supports-color@5.5.0)
+      morgan: 1.12.1(supports-color@5.5.0)
       on-finished: 2.4.1
       on-headers: 1.1.0
       path-to-regexp: 1.9.0

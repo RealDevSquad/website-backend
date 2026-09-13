@@ -36,7 +36,7 @@
     "jsdoc": "4.0.5",
     "jsonwebtoken": "^8.5.1",
     "lodash": "4.18.1",
-    "morgan": "1.12.0",
+    "morgan": "1.12.1",
     "multer": "2.3.0",
     "newrelic": "14.3.10",
     "nodemailer": "^10.0.1",
