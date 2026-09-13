@@ -54,7 +54,7 @@
     "@types/express": "5.0.6",
     "@types/jest": "30.0.0",
     "@types/mocha": "10.0.10",
-    "@types/node": "26.5.0",
+    "@types/node": "26.5.1",
     "@types/sinon": "22.0.0",
     "@typescript-eslint/parser": "^8.70.0",
     "chai": "6.2.2",
@@ -83,7 +83,7 @@
     "typescript": "5.9.3"
   },
   "engines": {
-    "node": "26.8.1",
+    "node": "26.8.2",
     "pnpm": ">=12 <13"
   },
   "devEngines": {
