@@ -17,7 +17,7 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@aws-sdk/client-identitystore": "3.1127.0",
+    "@aws-sdk/client-identitystore": "3.1131.0",
     "@google-cloud/firestore": "8.7.1",
     "@types/nodemailer": "^8.0.1",
     "axios": "1.20.0",
