@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "start": "node ./dist/server.js",
-    "tsc": "tsc",
-    "postinstall": "pnpm run tsc",
+    "prestart": "pnpm run build",
+    "build": "tsc",
     "dev": "cross-env NODE_ENV=development ts-node-dev server.js",
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
