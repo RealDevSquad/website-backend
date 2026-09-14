@@ -227,8 +227,8 @@ importers:
         specifier: 2.3.0
         version: 2.3.0
       newrelic:
-        specifier: 14.3.10
-        version: 14.3.10(supports-color@5.5.0)
+        specifier: 14.4.0
+        version: 14.4.0(supports-color@5.5.0)
       nodemailer:
         specifier: ^10.0.1
         version: 10.0.9
@@ -3782,8 +3782,8 @@ packages:
     resolution: {integrity: sha512-eonl3sLUha+S1GzTPxychyhnUzKyeQkZ7jLjKrBagJgPla13F+uQ71HgpFefyHgqrjEbCPkDArxYsjY8/+gLKA==}
     engines: {node: '>= 0.4.0'}
 
-  newrelic@14.3.10:
-    resolution: {integrity: sha512-vGwLfhzZ5IBw/4MX5xXRld+gpPRtiCMSMzLKtU7vTRXojkS/cf04Yk9BIikqBj5jkQmBulfzk4znQ/xoDijp3g==}
+  newrelic@14.4.0:
+    resolution: {integrity: sha512-c1Vcwl0yU3PHYYKxXhhq2tNrcUmBpYcnd/o7HtMrzWjOUr6sbGgSBTpRb1QM6/AfhkQQauVIg8Ezu4N84ulz1w==}
     engines: {node: '>=22', npm: '>=6.0.0'}
     hasBin: true
 
@@ -9494,7 +9494,7 @@ snapshots:
 
   netmask@2.1.1: {}
 
-  newrelic@14.3.10(supports-color@5.5.0):
+  newrelic@14.4.0(supports-color@5.5.0):
     dependencies:
       '@apm-js-collab/tracing-hooks': 0.13.0(supports-color@5.5.0)
       '@grpc/grpc-js': 1.14.4
