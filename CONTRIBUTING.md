@@ -18,18 +18,38 @@ Instructions for initial setup can be found in the [README](README.md).
 
 Installs all `dependencies` listed in the root `package.json`.
 
+##### `pnpm build`
+
+Compiles TypeScript + `allowJs` sources to `dist/` via `tsc`
+(`tsconfig.json`: `outDir: dist`). `typescript` is a `devDependency`, so run
+this **before** any `pnpm prune --prod`. Required before `pnpm start`
+(`start` runs `node ./dist/server.js` and does not rebuild).
+
+##### `pnpm dev`
+
+Starts the server in dev mode with `ts-node-dev` (no `dist/` build needed).
+
 ##### `pnpm test`
 
 The script associated with `pnpm test` will run all tests that ensures that your commit does not break anything in the
 repository. This will run the lint, integration and unit tests.
 
+##### `pnpm test-unit` / `pnpm test-integration`
+
+Run only unit or only integration tests (see `scripts/tests/testUnit.sh` /
+`testIntegration.sh`).
+
+##### `pnpm tdd:watch`
+
+Run TDD in watch mode for files listed in `scripts/tests/tdd-files-list.txt`.
+
 ##### `pnpm lint`
 
 Runs the lint checks in the project.
 
-##### `pnpm generate-api-schema`
+##### `pnpm lint-fix`
 
-Generates the API schema in the file `public/apiSchema.json`.
+Runs lint checks and auto-fixes what can be fixed.
 
 ##### `pnpm validate-setup`
 
@@ -78,13 +98,14 @@ The following project structure should be followed:
     |-- .github
     |   |-- workflows
     |       |-- // Github actions files
+    |-- .husky // git hooks (pre-commit runs `pnpm lint`)
     |-- .gitignore
     |-- .*rc, .*js, .*json, .*yml // config files for dependencies
     |-- CONTRIBUTING.md
     |-- README.md
     |-- CHANGELOG.md
     |-- app.js
-    |-- pnpm-workspace.yaml // pnpm allowBuilds approvals
+    |-- pnpm-workspace.yaml
     |-- pnpm-lock.yaml
     |-- package.json
     |-- server.js // Contains server start logic

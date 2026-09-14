@@ -176,9 +176,6 @@ importers:
       '@google-cloud/firestore':
         specifier: 8.7.1
         version: 8.7.1(supports-color@5.5.0)
-      '@types/nodemailer':
-        specifier: ^8.0.1
-        version: 8.0.1
       axios:
         specifier: 1.20.0
         version: 1.20.0(debug@4.4.3(supports-color@5.5.0))(supports-color@5.5.0)
@@ -279,6 +276,9 @@ importers:
       '@types/node':
         specifier: 26.5.0
         version: 26.5.0
+      '@types/nodemailer':
+        specifier: ^8.0.1
+        version: 8.0.1
       '@types/sinon':
         specifier: 22.0.0
         version: 22.0.0
