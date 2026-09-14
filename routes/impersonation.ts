@@ -40,6 +40,10 @@ router.patch(
     "/:id",
     authenticate,
     impersonationSessionValidator,
+    (req: any, res: any, next: any) =>
+      req.query.action === "START"
+        ? authorizeRoles([SUPERUSER])(req, res, next)
+        : next(),
     addAuthorizationForImpersonation,
     impersonationController
 );
