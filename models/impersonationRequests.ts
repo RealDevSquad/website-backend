@@ -7,8 +7,7 @@ import {
   ERROR_WHILE_UPDATING_REQUEST,
   OPERATION_NOT_ALLOWED
 } from "../constants/requests";
-import { Timestamp } from "firebase-admin/firestore";
-import { Query, CollectionReference } from '@google-cloud/firestore';
+import { Timestamp, Query, CollectionReference } from "firebase-admin/firestore";
 import { CreateImpersonationRequestModelDto, ImpersonationRequest, UpdateImpersonationRequestModelDto, PaginatedImpersonationRequests,ImpersonationRequestQuery } from "../types/impersonationRequest";
 import { Forbidden } from "http-errors";
 const logger = require("../utils/logger");

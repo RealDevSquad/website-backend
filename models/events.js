@@ -1,5 +1,4 @@
-const { Timestamp } = require("firebase-admin/firestore");
-const Firestore = require("@google-cloud/firestore");
+const { Timestamp, FieldValue } = require("firebase-admin/firestore");
 const firestore = require("../utils/firestore");
 const logger = require("../utils/logger");
 
@@ -107,7 +106,7 @@ const addPeerToEvent = async (peerData) => {
     } else {
       // If the peer document exists, update the joinedEvents array
       batch.update(peerRef, {
-        joinedEvents: Firestore.FieldValue.arrayUnion({
+        joinedEvents: FieldValue.arrayUnion({
           event_id: peerData.eventId,
           role: peerData.role,
           joined_at: peerData.joinedAt,
@@ -117,7 +116,7 @@ const addPeerToEvent = async (peerData) => {
 
     const eventRef = eventModel.doc(peerData.eventId);
     batch.update(eventRef, {
-      peers: Firestore.FieldValue.arrayUnion(peerRef.id),
+      peers: FieldValue.arrayUnion(peerRef.id),
     });
 
     await batch.commit();
