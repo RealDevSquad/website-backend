@@ -16,7 +16,7 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@aws-sdk/client-identitystore": "3.1131.0",
+    "@aws-sdk/client-identitystore": "3.1136.0",
     "axios": "1.20.0",
     "cloudinary": "2.11.0",
     "config": "5.0.1",
