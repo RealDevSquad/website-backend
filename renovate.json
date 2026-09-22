@@ -1,4 +1,46 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:base"]
+  "extends": ["config:best-practices", ":pinAllExceptPeerDependencies", "schedule:nonOfficeHours"],
+  "timezone": "Asia/Kolkata",
+  "semanticCommits": "auto",
+  "separateMajorMinor": true,
+  "separateMultipleMajor": true,
+  "separateMinorPatch": false,
+  "rebaseWhen": "conflicted",
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 2,
+  "osvVulnerabilityAlerts": true,
+  "lockFileMaintenance": {
+    "enabled": true
+  },
+  "postUpdateOptions": ["pnpmDedupe"],
+  "packageRules": [
+    {
+      "description": "Security fixes run anytime, bypassing the off-hours schedule",
+      "matchJsonata": ["isVulnerabilityAlert = true"],
+      "schedule": ["at any time"],
+      "minimumReleaseAge": "0 days",
+      "groupName": "security fixes",
+      "labels": ["security"]
+    },
+    {
+      "matchUpdateTypes": ["patch"],
+      "matchConfidence": ["high", "very high"],
+      "minimumReleaseAge": "3 days",
+      "automerge": true
+    },
+    {
+      "matchUpdateTypes": ["minor"],
+      "minimumReleaseAge": "7 days",
+      "automerge": false
+    },
+    {
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions"
+    }
+  ]
 }
