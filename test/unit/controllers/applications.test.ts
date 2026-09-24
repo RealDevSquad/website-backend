@@ -123,6 +123,16 @@ describe("updateApplication", () => {
       expect(jsonSpy.called).to.be.false;
     });
 
+    it("should return 409 when application status is not editable", async () => {
+      updateApplicationStub.resolves({ status: APPLICATION_STATUS.notPending });
+
+      await applicationsController.updateApplication(req as CustomRequest, res as CustomResponse);
+
+      expect(boomConflict.calledOnce).to.be.true;
+      expect(boomConflict.firstCall.args[0]).to.equal(APPLICATION_ERROR_MESSAGES.APPLICATION_ALREADY_REVIEWED);
+      expect(jsonSpy.called).to.be.false;
+    });
+
     it("should return 500 when model returns unexpected status", async () => {
       updateApplicationStub.resolves({ status: "unknown" });
 

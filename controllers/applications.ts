@@ -117,6 +117,8 @@ const updateApplication = async (req: CustomRequest, res: CustomResponse) => {
         return res.boom.notFound(APPLICATION_ERROR_MESSAGES.APPLICATION_NOT_FOUND);
       case APPLICATION_STATUS.unauthorized:
         return res.boom.unauthorized(APPLICATION_ERROR_MESSAGES.APPLICATION_EDIT_UNAUTHORIZED);
+      case APPLICATION_STATUS.notPending:
+        return res.boom.conflict(APPLICATION_ERROR_MESSAGES.APPLICATION_ALREADY_REVIEWED);
       case APPLICATION_STATUS.tooSoon:
         return res.boom.conflict(APPLICATION_ERROR_MESSAGES.EDIT_TOO_SOON);
       case APPLICATION_STATUS.success:
