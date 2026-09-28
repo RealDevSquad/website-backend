@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node ./dist/server.js",
-    "tsc": "tsc",
-    "postinstall": "pnpm run tsc",
+    "build": "tsc",
     "dev": "cross-env NODE_ENV=development ts-node-dev server.js",
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
@@ -18,8 +17,6 @@
   },
   "dependencies": {
     "@aws-sdk/client-identitystore": "3.1131.0",
-    "@google-cloud/firestore": "8.7.1",
-    "@types/nodemailer": "^8.0.1",
     "axios": "1.20.0",
     "cloudinary": "2.11.0",
     "config": "5.0.1",
@@ -32,13 +29,13 @@
     "firebase-admin": "14.4.0",
     "helmet": "8.3.0",
     "http-errors": "~2.0.1",
-    "joi": "18.2.8",
+    "joi": "18.2.9",
     "jsdoc": "4.0.5",
     "jsonwebtoken": "^8.5.1",
     "lodash": "4.18.1",
-    "morgan": "1.12.0",
-    "multer": "2.3.0",
-    "newrelic": "14.3.10",
+    "morgan": "1.12.1",
+    "multer": "2.4.0",
+    "newrelic": "14.4.0",
     "nodemailer": "^10.0.1",
     "nodemailer-mock": "^2.0.14",
     "passport": "0.7.0",
@@ -55,6 +52,7 @@
     "@types/jest": "30.0.0",
     "@types/mocha": "10.0.10",
     "@types/node": "26.5.0",
+    "@types/nodemailer": "^8.0.1",
     "@types/sinon": "22.0.0",
     "@typescript-eslint/parser": "^8.70.0",
     "chai": "6.2.2",
@@ -69,14 +67,14 @@
     "eslint-plugin-prettier": "5.5.6",
     "eslint-plugin-promise": "7.3.0",
     "eslint-plugin-security": "4.0.1",
-    "firebase-tools": "15.30.0",
+    "firebase-tools": "15.30.2",
     "globals": "17.12.0",
     "husky": "^9.1.7",
     "mocha": "12.0.0",
     "nock": "14.0.17",
     "nodemon": "3.1.14",
     "nyc": "18.0.0",
-    "prettier": "3.9.6",
+    "prettier": "3.9.8",
     "sinon": "22.1.0",
     "ts-node": "10.9.2",
     "ts-node-dev": "2.0.0",
@@ -94,9 +92,9 @@
     },
     "packageManager": {
       "name": "pnpm",
-      "version": "12.4.0",
+      "version": "12.5.1",
       "onFail": "download"
     }
   },
-  "packageManager": "pnpm@12.4.0"
+  "packageManager": "pnpm@12.5.1"
 }

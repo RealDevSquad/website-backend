@@ -70,33 +70,20 @@ pnpm tdd:watch
 pnpm dev
 ```
 
-## What happens in production:
+## Production build and start
 
-- Install packages
+`typescript` (which provides `tsc`) is a `devDependency` on purpose — it is
+only needed to compile, not to run. So always build **before** pruning
+dev dependencies:
 
-```
-pnpm install
-```
-
-- Run tests
-
-```
+```shell
+pnpm install --frozen-lockfile
 pnpm test
+pnpm run build # emits dist/ via tsc (tsconfig.json: outDir dist)
+pnpm start     # runs node ./dist/server.js, does NOT rebuild
 ```
 
-- Prune dev dependencies
-
-```
-pnpm prune --prod
-```
-
-- Run start command (with port information)
-
-```
-pnpm start
-```
-
-Note: These are handled automatically behind the scene when pushing to [Heroku](https://devcenter.heroku.com/)
+For local dev use `pnpm dev` (runs `ts-node-dev server.js`, no `dist/` needed).
 
 Check out our video on how to setup the backend here: [Wiki link](https://github.com/Real-Dev-Squad/website-backend/wiki/Backend-setup-and-understanding-the-flow)
 

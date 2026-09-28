@@ -3,7 +3,7 @@
  * This will contain the DB schema if we start consuming an ORM for managing the DB operations
  */
 
-const Firestore = require("@google-cloud/firestore");
+const { Timestamp, FieldValue } = require("firebase-admin/firestore");
 const firestore = require("../utils/firestore");
 const { fetchUser } = require("./users");
 
@@ -67,8 +67,8 @@ const fetchParticipantsData = async (participants) => {
 const postChallenge = async (challengeData) => {
   try {
     const { start_date: startDate, end_date: endDate } = challengeData;
-    const startdate = new Firestore.Timestamp(startDate, 0);
-    const enddate = new Firestore.Timestamp(endDate, 0);
+    const startdate = new Timestamp(startDate, 0);
+    const enddate = new Timestamp(endDate, 0);
     const challengeRef = await challengesModel.add({
       ...challengeData,
       start_date: startdate,
@@ -95,7 +95,7 @@ const subscribeUserToChallenge = async (userId, challengeId) => {
     const user = getUser.data();
     if (user) {
       const challengeRef = await challengesModel.doc(challengeId);
-      await challengeRef.update({ participants: Firestore.FieldValue.arrayUnion(userId) });
+      await challengeRef.update({ participants: FieldValue.arrayUnion(userId) });
       return challengeRef.get();
     } else {
       throw new Error(USER_DOES_NOT_EXIST_ERROR);
