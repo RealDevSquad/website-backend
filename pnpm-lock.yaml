@@ -231,10 +231,10 @@ importers:
         version: 14.4.0(supports-color@5.5.0)
       nodemailer:
         specifier: ^10.0.1
-        version: 10.0.9
+        version: 10.0.12
       nodemailer-mock:
         specifier: ^2.0.14
-        version: 2.1.0(nodemailer@10.0.9)(supports-color@5.5.0)
+        version: 2.1.0(nodemailer@10.0.12)(supports-color@5.5.0)
       passport:
         specifier: 0.7.0
         version: 0.7.0
@@ -3979,8 +3979,8 @@ packages:
     peerDependencies:
       nodemailer: ^6.x || ^7.x || ^8.x || ^9.x || ^10.x
 
-  nodemailer@10.0.9:
-    resolution: {integrity: sha512-BF0qcyplCwp+jMk6HCjFykBz/YhhZSsxrARhOldLwFWH+8kGjQsd2WIMIZhqEuyXRoGFi0ONbDeWDMDoL8MhLw==}
+  nodemailer@10.0.12:
+    resolution: {integrity: sha512-PQ46oNbNMuH/Sno7B5IWIU9etytwrO0xdTFvWXpIQFRXhBAXtzD48243AS+BCbQQTPD8y3fqUrgLn0tSo77gvg==}
     engines: {node: '>=20.0.0'}
 
   nodemon@3.1.14:
@@ -9593,14 +9593,14 @@ snapshots:
 
   node@runtime:26.8.1: {}
 
-  nodemailer-mock@2.1.0(nodemailer@10.0.9)(supports-color@5.5.0):
+  nodemailer-mock@2.1.0(nodemailer@10.0.12)(supports-color@5.5.0):
     dependencies:
       debug: 4.4.3(supports-color@5.5.0)
-      nodemailer: 10.0.9
+      nodemailer: 10.0.12
     transitivePeerDependencies:
       - supports-color
 
-  nodemailer@10.0.9: {}
+  nodemailer@10.0.12: {}
 
   nodemon@3.1.14:
     dependencies:
