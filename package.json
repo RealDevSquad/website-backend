@@ -74,7 +74,7 @@
     "nock": "14.0.17",
     "nodemon": "3.1.14",
     "nyc": "18.0.0",
-    "prettier": "3.9.8",
+    "prettier": "3.9.9",
     "sinon": "22.1.0",
     "ts-node": "10.9.2",
     "ts-node-dev": "2.0.0",
