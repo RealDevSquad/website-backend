@@ -25,7 +25,7 @@ const { PROGRESS_ALREADY_CREATED, PROGRESS_DOCUMENT_NOT_FOUND } = PROGRESSES_RES
  * @throws {Error} If a progress document has already been created for the given user or task on the current day.
  **/
 const createProgressDocument = async (progressData) => {
-  const { type, taskId } = progressData;
+  const { type, taskId, userId } = progressData;
   const createdAtTimestamp = new Date().getTime();
   const progressDateTimestamp = getProgressDateTimestamp();
   let taskTitle;
@@ -38,8 +38,23 @@ const createProgressDocument = async (progressData) => {
     throw new Conflict(`${type.charAt(0).toUpperCase() + type.slice(1)} ${PROGRESS_ALREADY_CREATED}`);
   }
   const progressDocumentData = { ...progressData, createdAt: createdAtTimestamp, date: progressDateTimestamp };
-  const { id } = await progressesCollection.add(progressDocumentData);
-  const data = { id, ...progressDocumentData };
+  // The query check above narrows the window but cannot prevent two requests made within the
+  // same second from both seeing an empty result and each inserting a document (issue #1158).
+  // Derive a deterministic document id from the uniqueness key (type + user/task + day) and use
+  // an atomic create(), which fails with ALREADY_EXISTS if a document for that key already exists,
+  // so concurrent creates for the same day can never both succeed.
+  const progressDocumentId = `${type}:${type === "user" ? userId : taskId}:${progressDateTimestamp}`;
+  const docRef = progressesCollection.doc(progressDocumentId);
+  try {
+    await docRef.create(progressDocumentData);
+  } catch (error) {
+    const isAlreadyExists = error.code === 6 || error.code === "already-exists";
+    if (isAlreadyExists) {
+      throw new Conflict(`${type.charAt(0).toUpperCase() + type.slice(1)} ${PROGRESS_ALREADY_CREATED}`);
+    }
+    throw error;
+  }
+  const data = { id: docRef.id, ...progressDocumentData };
   return { data, taskTitle };
 };
 
