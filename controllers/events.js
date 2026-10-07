@@ -143,6 +143,10 @@ const joinEvent = async (req, res) => {
           message: "Token generated successfully!",
         });
       }
+
+      return res.status(403).json({
+        message: "Unauthorized, you don't have permission to join as host or moderator!",
+      });
     }
 
     const token = tokenService.getAuthToken({ ...payload, roomId });
