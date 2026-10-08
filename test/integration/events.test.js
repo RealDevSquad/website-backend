@@ -344,6 +344,68 @@ describe("events", function () {
           return done();
         });
     });
+
+    it("should return 403 and no token when a member requests the host role", function (done) {
+      service = sinon.stub(EventAPIService.prototype, "get").returns({ data: [event1Data] });
+      tokenService = sinon.stub(EventTokenService.prototype, "getAuthToken").returns("test-token");
+
+      const payload = {
+        roomId: event1Data.id,
+        userId: "5678",
+        role: "host",
+      };
+
+      request
+        .execute(app)
+        .post("/events/join-admin")
+        .set("cookie", `${cookieName}=${memberAuthToken}`)
+        .send(payload)
+        .end((error, response) => {
+          if (error) {
+            return done(error);
+          }
+
+          expect(response).to.have.status(403);
+          expect(response.body).to.not.have.property("token");
+          expect(response.body.message).to.be.equal(
+            "Unauthorized, you don't have permission to join as host or moderator!",
+          );
+          expect(tokenService.called).to.be.equal(false);
+
+          return done();
+        });
+    });
+
+    it("should return 403 and no token when a super user without member role requests the moderator role", function (done) {
+      service = sinon.stub(EventAPIService.prototype, "get").returns({ data: [event1Data] });
+      tokenService = sinon.stub(EventTokenService.prototype, "getAuthToken").returns("test-token");
+
+      const payload = {
+        roomId: event1Data.id,
+        userId: "5678",
+        role: "moderator",
+      };
+
+      request
+        .execute(app)
+        .post("/events/join-admin")
+        .set("cookie", `${cookieName}=${superUserAuthToken}`)
+        .send(payload)
+        .end((error, response) => {
+          if (error) {
+            return done(error);
+          }
+
+          expect(response).to.have.status(403);
+          expect(response.body).to.not.have.property("token");
+          expect(response.body.message).to.be.equal(
+            "Unauthorized, you don't have permission to join as host or moderator!",
+          );
+          expect(tokenService.called).to.be.equal(false);
+
+          return done();
+        });
+    });
   });
 
   describe("GET /events/:id - getEventById", function () {
