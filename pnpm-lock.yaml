@@ -163,7 +163,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  universal-analytics: 0.5.3
+  universal-analytics: 0.5.4
 
 importers:
 
@@ -234,7 +234,7 @@ importers:
         version: 10.0.9
       nodemailer-mock:
         specifier: ^2.0.14
-        version: 2.0.14(nodemailer@10.0.9)(supports-color@5.5.0)
+        version: 2.1.0(nodemailer@10.0.9)(supports-color@5.5.0)
       passport:
         specifier: 0.7.0
         version: 0.7.0
@@ -315,8 +315,8 @@ importers:
         specifier: 7.3.0
         version: 7.3.0(eslint@10.10.0(supports-color@5.5.0))
       eslint-plugin-security:
-        specifier: 4.0.1
-        version: 4.0.1
+        specifier: 4.1.0
+        version: 4.1.0
       firebase-tools:
         specifier: 15.30.2
         version: 15.30.2(@types/node@26.5.0)(supports-color@5.5.0)
@@ -2395,8 +2395,8 @@ packages:
     peerDependencies:
       eslint: ^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0
 
-  eslint-plugin-security@4.0.1:
-    resolution: {integrity: sha512-/lZCkOxPOWaf1jXAqgICrS8St3BMBccIPvhOSUYuV6VCr1o5nFVG998FnTLt6w2Nxb8Uo0nM8fzmnhp+GY/aEg==}
+  eslint-plugin-security@4.1.0:
+    resolution: {integrity: sha512-cB4H72o/w8C0cm4uHJOnXMJz7MYTTuOwhn2X7PMuzZwfwqUoHK/ASHT6WKP+95lFk5Hkf3xfpiXB8a1+cef4rg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
   eslint-scope@9.1.2:
@@ -3974,10 +3974,10 @@ packages:
     version: 26.8.1
     hasBin: true
 
-  nodemailer-mock@2.0.14:
-    resolution: {integrity: sha512-YqS6rMiDFSoQiQmZPowPkqJd0oQ3qPRhOzYJvfSIRSkOjQmW6XK7rqt/yr1sGXWoMtBpmsdHiY8wNoJberoLTA==}
+  nodemailer-mock@2.1.0:
+    resolution: {integrity: sha512-yfyQD1IWqHxmJ+AcT8KmOEzhMFNxlXvX87fqeeRfEfI54/gaTAWU0Q82rS2uTbVqg7/gKUfWhAdZVcKYPd3U4A==}
     peerDependencies:
-      nodemailer: ^6.x || ^7.x || ^8.x || ^9.x
+      nodemailer: ^6.x || ^7.x || ^8.x || ^9.x || ^10.x
 
   nodemailer@10.0.9:
     resolution: {integrity: sha512-BF0qcyplCwp+jMk6HCjFykBz/YhhZSsxrARhOldLwFWH+8kGjQsd2WIMIZhqEuyXRoGFi0ONbDeWDMDoL8MhLw==}
@@ -5140,9 +5140,9 @@ packages:
     resolution: {integrity: sha512-uNaeirEPvpZWSgzwsPGtU2zVSTrn/8L5q/IexZmH0eH6SA73CmAA5U4GwORTxQAZs95TAXLNqeLoPPNO5gZfWg==}
     engines: {node: '>=8'}
 
-  universal-analytics@0.5.3:
-    resolution: {integrity: sha512-HXSMyIcf2XTvwZ6ZZQLfxfViRm/yTGoRgDeTbojtq6rezeyKB0sTBcKH2fhddnteAHRcHiKgr/ACpbgjGOC6RQ==}
-    engines: {node: '>=12.18.2'}
+  universal-analytics@0.5.4:
+    resolution: {integrity: sha512-db38BYsx+oZEx0bc+PeGmIwG+YiYH5Xluhxf9EBnL39U4+DAXJtXQHLJ+zzTH36lx/N54/WKQQYnh0kQWJ74yg==}
+    engines: {node: '>=22.0.0'}
 
   universalify@0.1.2:
     resolution: {integrity: sha512-rBJeI5CXAlmy1pV+617WB9J63U6XcazHHF2f2dbJix4XzpUF0RS3Zbj0FGIOCAva5P/d/GBOYaACQ1w+0azUkg==}
@@ -5182,9 +5182,8 @@ packages:
     resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
     engines: {node: '>= 0.4.0'}
 
-  uuid@8.3.2:
-    resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
-    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+  uuid@14.0.2:
+    resolution: {integrity: sha512-xZe/16rV4aa+HGSOCiY2YeLT1OybRLrrkL/Rqaq7p7GMVXjFh+6wN4oMYgjFmnSnhY8t6Xpdl2l9qmnHYuMHwQ==}
     hasBin: true
 
   uuid@9.0.1:
@@ -7758,7 +7757,7 @@ snapshots:
       '@eslint-community/eslint-utils': 4.10.1(eslint@10.10.0(supports-color@5.5.0))
       eslint: 10.10.0(supports-color@5.5.0)
 
-  eslint-plugin-security@4.0.1:
+  eslint-plugin-security@4.1.0:
     dependencies:
       safe-regex: 2.1.1
 
@@ -8171,7 +8170,7 @@ snapshots:
       tmp: 0.2.7
       triple-beam: 1.4.1
       undici: 6.28.1
-      universal-analytics: 0.5.3(supports-color@5.5.0)
+      universal-analytics: 0.5.4(supports-color@5.5.0)
       update-notifier-cjs: 5.1.7
       winston: 3.19.0
       winston-transport: 4.9.0
@@ -9594,7 +9593,7 @@ snapshots:
 
   node@runtime:26.8.1: {}
 
-  nodemailer-mock@2.0.14(nodemailer@10.0.9)(supports-color@5.5.0):
+  nodemailer-mock@2.1.0(nodemailer@10.0.9)(supports-color@5.5.0):
     dependencies:
       debug: 4.4.3(supports-color@5.5.0)
       nodemailer: 10.0.9
@@ -10986,10 +10985,10 @@ snapshots:
     dependencies:
       crypto-random-string: 2.0.0
 
-  universal-analytics@0.5.3(supports-color@5.5.0):
+  universal-analytics@0.5.4(supports-color@5.5.0):
     dependencies:
       debug: 4.4.3(supports-color@5.5.0)
-      uuid: 8.3.2
+      uuid: 14.0.2
     transitivePeerDependencies:
       - supports-color
 
@@ -11038,7 +11037,7 @@ snapshots:
 
   utils-merge@1.0.1: {}
 
-  uuid@8.3.2: {}
+  uuid@14.0.2: {}
 
   uuid@9.0.1: {}
 
