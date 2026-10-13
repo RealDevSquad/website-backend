@@ -111,12 +111,6 @@ const joinEvent = async (req, res) => {
           message: "Provided event code is invalid for the role!",
         });
       }
-      const token = tokenService.getAuthToken({ ...payload, roomId });
-
-      return res.status(201).json({
-        token,
-        message: "Token generated successfully!",
-      });
     }
 
     if (role === EVENT_ROLES.HOST || role === EVENT_ROLES.MODERATOR) {
@@ -126,27 +120,14 @@ const joinEvent = async (req, res) => {
         });
       }
 
-      if (role === EVENT_ROLES.HOST && req.userData.roles.super_user) {
-        const token = tokenService.getAuthToken({ ...payload, roomId });
+      const { super_user: isSuperUser, member: isMember } = req.userData.roles;
+      const canJoin = role === EVENT_ROLES.HOST ? isSuperUser : isMember;
 
-        return res.status(201).json({
-          token,
-          message: "Token generated successfully!",
+      if (!canJoin) {
+        return res.status(403).json({
+          message: "Unauthorized, you don't have permission to join as host or moderator!",
         });
       }
-
-      if (role === EVENT_ROLES.MODERATOR && req.userData.roles.member) {
-        const token = tokenService.getAuthToken({ ...payload, roomId });
-
-        return res.status(201).json({
-          token,
-          message: "Token generated successfully!",
-        });
-      }
-
-      return res.status(403).json({
-        message: "Unauthorized, you don't have permission to join as host or moderator!",
-      });
     }
 
     const token = tokenService.getAuthToken({ ...payload, roomId });
