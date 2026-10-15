@@ -235,6 +235,124 @@ describe("events", function () {
           return done();
         });
     });
+
+    it("should return a token when a maven joins with a valid event code", function (done) {
+      service = sinon.stub(EventAPIService.prototype, "get").returns({ data: [event1Data] });
+      tokenService = sinon.stub(EventTokenService.prototype, "getAuthToken").returns("test-token");
+      const getEventCodesStub = sinon.stub(eventQuery, "getEventCodes").resolves([{ code: "maven123" }]);
+
+      const payload = {
+        roomId: event1Data.id,
+        userId: "5678",
+        role: "maven",
+        eventCode: "maven123",
+      };
+
+      request
+        .execute(app)
+        .post("/events/join")
+        .send(payload)
+        .end((error, response) => {
+          getEventCodesStub.restore();
+          if (error) {
+            return done(error);
+          }
+
+          expect(response).to.have.status(201);
+          expect(response.body.token).to.be.equal("test-token");
+          expect(response.body.message).to.be.equal("Token generated successfully!");
+          expect(tokenService.calledOnce).to.be.equal(true);
+
+          return done();
+        });
+    });
+
+    it("should return 400 and no token when a maven joins with an invalid event code", function (done) {
+      service = sinon.stub(EventAPIService.prototype, "get").returns({ data: [event1Data] });
+      tokenService = sinon.stub(EventTokenService.prototype, "getAuthToken").returns("test-token");
+      const getEventCodesStub = sinon.stub(eventQuery, "getEventCodes").resolves([{ code: "maven123" }]);
+
+      const payload = {
+        roomId: event1Data.id,
+        userId: "5678",
+        role: "maven",
+        eventCode: "wrong-code",
+      };
+
+      request
+        .execute(app)
+        .post("/events/join")
+        .send(payload)
+        .end((error, response) => {
+          getEventCodesStub.restore();
+          if (error) {
+            return done(error);
+          }
+
+          expect(response).to.have.status(400);
+          expect(response.body).to.not.have.property("token");
+          expect(response.body.message).to.be.equal("Provided event code is invalid for the role!");
+          expect(tokenService.called).to.be.equal(false);
+
+          return done();
+        });
+    });
+
+    it("should return 401 and no token when a user who is not logged in requests the host role", function (done) {
+      service = sinon.stub(EventAPIService.prototype, "get").returns({ data: [event1Data] });
+      tokenService = sinon.stub(EventTokenService.prototype, "getAuthToken").returns("test-token");
+
+      const payload = {
+        roomId: event1Data.id,
+        userId: "5678",
+        role: "host",
+      };
+
+      request
+        .execute(app)
+        .post("/events/join")
+        .send(payload)
+        .end((error, response) => {
+          if (error) {
+            return done(error);
+          }
+
+          expect(response).to.have.status(401);
+          expect(response.body).to.not.have.property("token");
+          expect(response.body.message).to.be.equal("Unauthorized, please login to perform this action!");
+          expect(tokenService.called).to.be.equal(false);
+
+          return done();
+        });
+    });
+
+    it("should return 401 and no token when a user who is not logged in requests the moderator role", function (done) {
+      service = sinon.stub(EventAPIService.prototype, "get").returns({ data: [event1Data] });
+      tokenService = sinon.stub(EventTokenService.prototype, "getAuthToken").returns("test-token");
+
+      const payload = {
+        roomId: event1Data.id,
+        userId: "5678",
+        role: "moderator",
+      };
+
+      request
+        .execute(app)
+        .post("/events/join")
+        .send(payload)
+        .end((error, response) => {
+          if (error) {
+            return done(error);
+          }
+
+          expect(response).to.have.status(401);
+          expect(response.body).to.not.have.property("token");
+          expect(response.body.message).to.be.equal("Unauthorized, please login to perform this action!");
+          expect(tokenService.called).to.be.equal(false);
+
+          return done();
+        });
+    });
   });
 
   describe("POST /events/join-admin - joinEvent", function () {
