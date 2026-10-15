@@ -109,24 +109,22 @@ const joinEvent = async (req, res) => {
       }
     }
 
-    const isPrivilegedRole = role === EVENT_ROLES.HOST || role === EVENT_ROLES.MODERATOR;
+    if ((role === EVENT_ROLES.HOST || role === EVENT_ROLES.MODERATOR) && !req.userData) {
+      return res.status(401).json({
+        message: "Unauthorized, please login to perform this action!",
+      });
+    }
 
-    if (isPrivilegedRole) {
-      if (!req.userData) {
-        return res.status(401).json({
-          message: "Unauthorized, please login to perform this action!",
-        });
-      }
+    if (role === EVENT_ROLES.HOST && !req.userData.roles.super_user) {
+      return res.status(403).json({
+        message: "Unauthorized, you don't have permission to join as host or moderator!",
+      });
+    }
 
-      const hasPermission =
-        (role === EVENT_ROLES.HOST && req.userData.roles.super_user) ||
-        (role === EVENT_ROLES.MODERATOR && req.userData.roles.member);
-
-      if (!hasPermission) {
-        return res.status(403).json({
-          message: "Unauthorized, you don't have permission to join as host or moderator!",
-        });
-      }
+    if (role === EVENT_ROLES.MODERATOR && !req.userData.roles.member) {
+      return res.status(403).json({
+        message: "Unauthorized, you don't have permission to join as host or moderator!",
+      });
     }
 
     const token = tokenService.getAuthToken({ userId, role, roomId });
