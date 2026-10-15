@@ -115,13 +115,15 @@ const joinEvent = async (req, res) => {
       });
     }
 
-    if (role === EVENT_ROLES.HOST && !req.userData.roles.super_user) {
+    const { super_user: isSuperUser, member: isMember } = req.userData?.roles ?? {};
+
+    if (role === EVENT_ROLES.HOST && !isSuperUser) {
       return res.status(403).json({
         message: "Unauthorized, you don't have permission to join as host or moderator!",
       });
     }
 
-    if (role === EVENT_ROLES.MODERATOR && !req.userData.roles.member) {
+    if (role === EVENT_ROLES.MODERATOR && !isMember) {
       return res.status(403).json({
         message: "Unauthorized, you don't have permission to join as host or moderator!",
       });
