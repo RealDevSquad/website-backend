@@ -95,16 +95,12 @@ const getAllEvents = async (req, res) => {
  */
 const joinEvent = async (req, res) => {
   const { roomId, userId, role, eventCode } = req.body;
-  const payload = { userId, role };
 
   try {
     if (role === EVENT_ROLES.MAVEN) {
       const eventCodes = await eventQuery.getEventCodes({ id: roomId });
-      const allEventCodesArray = eventCodes.map((eventCode) => {
-        return eventCode.code;
-      });
 
-      const isEventCodeValid = allEventCodesArray.includes(eventCode);
+      const isEventCodeValid = eventCodes.some(({ code }) => code === eventCode);
 
       if (!isEventCodeValid) {
         return res.status(400).json({
@@ -113,24 +109,27 @@ const joinEvent = async (req, res) => {
       }
     }
 
-    if (role === EVENT_ROLES.HOST || role === EVENT_ROLES.MODERATOR) {
+    const isPrivilegedRole = role === EVENT_ROLES.HOST || role === EVENT_ROLES.MODERATOR;
+
+    if (isPrivilegedRole) {
       if (!req.userData) {
-        return res.status(400).json({
+        return res.status(401).json({
           message: "Unauthorized, please login to perform this action!",
         });
       }
 
-      const { super_user: isSuperUser, member: isMember } = req.userData.roles;
-      const canJoin = role === EVENT_ROLES.HOST ? isSuperUser : isMember;
+      const hasPermission =
+        (role === EVENT_ROLES.HOST && req.userData.roles.super_user) ||
+        (role === EVENT_ROLES.MODERATOR && req.userData.roles.member);
 
-      if (!canJoin) {
+      if (!hasPermission) {
         return res.status(403).json({
           message: "Unauthorized, you don't have permission to join as host or moderator!",
         });
       }
     }
 
-    const token = tokenService.getAuthToken({ ...payload, roomId });
+    const token = tokenService.getAuthToken({ userId, role, roomId });
 
     return res.status(201).json({
       token,
