@@ -485,9 +485,7 @@ describe("events", function () {
 
           expect(response).to.have.status(403);
           expect(response.body).to.not.have.property("token");
-          expect(response.body.message).to.be.equal(
-            "Unauthorized, you don't have permission to join as host or moderator!",
-          );
+          expect(response.body.message).to.be.equal("Unauthorized, you don't have permission to join as host!");
           expect(tokenService.called).to.be.equal(false);
 
           return done();
@@ -516,9 +514,7 @@ describe("events", function () {
 
           expect(response).to.have.status(403);
           expect(response.body).to.not.have.property("token");
-          expect(response.body.message).to.be.equal(
-            "Unauthorized, you don't have permission to join as host or moderator!",
-          );
+          expect(response.body.message).to.be.equal("Unauthorized, you don't have permission to join as moderator!");
           expect(tokenService.called).to.be.equal(false);
 
           return done();

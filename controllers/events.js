@@ -119,13 +119,13 @@ const joinEvent = async (req, res) => {
 
     if (role === EVENT_ROLES.HOST && !isSuperUser) {
       return res.status(403).json({
-        message: "Unauthorized, you don't have permission to join as host or moderator!",
+        message: "Unauthorized, you don't have permission to join as host!",
       });
     }
 
     if (role === EVENT_ROLES.MODERATOR && !isMember) {
       return res.status(403).json({
-        message: "Unauthorized, you don't have permission to join as host or moderator!",
+        message: "Unauthorized, you don't have permission to join as moderator!",
       });
     }
 
