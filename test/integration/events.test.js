@@ -231,6 +231,9 @@ describe("events", function () {
           expect(response).to.have.status(201);
           expect(response.body.token).to.be.a("string");
           expect(response.body.message).to.be.a("string");
+          expect(
+            tokenService.calledOnceWithExactly({ userId: payload.userId, role: payload.role, roomId: payload.roomId }),
+          ).to.be.equal(true);
 
           return done();
         });
@@ -261,7 +264,9 @@ describe("events", function () {
           expect(response).to.have.status(201);
           expect(response.body.token).to.be.equal("test-token");
           expect(response.body.message).to.be.equal("Token generated successfully!");
-          expect(tokenService.calledOnce).to.be.equal(true);
+          expect(
+            tokenService.calledOnceWithExactly({ userId: payload.userId, role: payload.role, roomId: payload.roomId }),
+          ).to.be.equal(true);
 
           return done();
         });
@@ -401,6 +406,9 @@ describe("events", function () {
           expect(response).to.have.status(201);
           expect(response.body.token).to.be.a("string");
           expect(response.body.message).to.be.a("string");
+          expect(
+            tokenService.calledOnceWithExactly({ userId: payload.userId, role: payload.role, roomId: payload.roomId }),
+          ).to.be.equal(true);
 
           return done();
         });
@@ -431,6 +439,9 @@ describe("events", function () {
           expect(response).to.have.status(201);
           expect(response.body.token).to.be.a("string");
           expect(response.body.message).to.be.a("string");
+          expect(
+            tokenService.calledOnceWithExactly({ userId: payload.userId, role: payload.role, roomId: payload.roomId }),
+          ).to.be.equal(true);
 
           return done();
         });
