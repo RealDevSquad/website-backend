@@ -58,7 +58,7 @@
     "chai": "6.2.2",
     "chai-http": "5.1.2",
     "cross-env": "10.1.0",
-    "eslint": "10.10.0",
+    "eslint": "10.11.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-config-standard": "17.1.0",
     "eslint-plugin-import": "^2.32.0",
