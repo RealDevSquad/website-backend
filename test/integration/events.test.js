@@ -1,6 +1,5 @@
-const chai = require("chai");
-const { expect } = chai;
-const chaiHttp = require("chai-http");
+const { expect } = require("chai");
+const { request } = require("chai-http");
 
 const app = require("../../server");
 const authService = require("../../services/authService");
@@ -28,8 +27,6 @@ const { eventOnePeerData } = require("../fixtures/events/peers");
 
 const cookieName = config.get("userToken.cookieName");
 
-chai.use(chaiHttp);
-
 describe("events", function () {
   let authToken;
   let userId;
@@ -55,13 +52,13 @@ describe("events", function () {
         name: "TestingEvent",
         description: "Hello world! How are you",
         region: "in",
-        userId: userId,
+        userId,
       };
 
       service = sinon.stub(EventAPIService.prototype, "post").returns(event1Data);
 
-      chai
-        .request(app)
+      request
+        .execute(app)
         .post("/events")
         .set("cookie", `${cookieName}=${authToken}`)
         .send(eventData)
@@ -83,15 +80,15 @@ describe("events", function () {
     it("returns an error when the request to the API service fails", function (done) {
       service = sinon.stub(EventAPIService.prototype, "post").rejects({ code: "ERR_BAD_REQUEST" });
 
-      chai
-        .request(app)
+      request
+        .execute(app)
         .post("/events")
         .set("cookie", `${cookieName}=${authToken}`)
         .send({
           name: "Test Event",
           description: "This is a test event",
           region: "in",
-          userId: userId,
+          userId,
         })
         .end((error, response) => {
           if (error) {
@@ -111,10 +108,10 @@ describe("events", function () {
         name: "Test Room",
         description: "This is a test room",
         region: "in",
-        userId: userId,
+        userId,
       };
-      chai
-        .request(app)
+      request
+        .execute(app)
         .post(`/events`)
         .send(eventData)
         .end((error, response) => {
@@ -141,8 +138,8 @@ describe("events", function () {
     it("should return all events information based on query parameters and enabled as false", function (done) {
       service = sinon.stub(EventAPIService.prototype, "get").returns({ limit: 10, last: "id", data: eventData });
 
-      chai
-        .request(app)
+      request
+        .execute(app)
         .get("/events?limit=10&enabled=false")
         .end((error, response) => {
           if (error) {
@@ -165,8 +162,8 @@ describe("events", function () {
     it("should return all events information based on query parameters and enabled as true", function (done) {
       service = sinon.stub(EventAPIService.prototype, "get").returns({ limit: 10, last: "id", data: eventData });
 
-      chai
-        .request(app)
+      request
+        .execute(app)
         .get("/events?limit=10&enabled=true")
         .end((error, response) => {
           if (error) {
@@ -186,8 +183,8 @@ describe("events", function () {
     it("returns an error if there is a problem retrieving events", function (done) {
       service = sinon.stub(EventAPIService.prototype, "get").rejects({ code: "ERR_BAD_REQUEST" });
 
-      chai
-        .request(app)
+      request
+        .execute(app)
         .get("/events?limit=10&enabled=true")
         .end((error, response) => {
           if (error) {
@@ -223,8 +220,8 @@ describe("events", function () {
       };
       tokenService = sinon.stub(EventTokenService.prototype, "getAuthToken").returns("test-token");
 
-      chai
-        .request(app)
+      request
+        .execute(app)
         .post("/events/join")
         .send(payload)
         .end((error, response) => {
@@ -234,6 +231,129 @@ describe("events", function () {
           expect(response).to.have.status(201);
           expect(response.body.token).to.be.a("string");
           expect(response.body.message).to.be.a("string");
+          expect(
+            tokenService.calledOnceWithExactly({ userId: payload.userId, role: payload.role, roomId: payload.roomId }),
+          ).to.be.equal(true);
+
+          return done();
+        });
+    });
+
+    it("should return a token when a maven joins with a valid event code", function (done) {
+      service = sinon.stub(EventAPIService.prototype, "get").returns({ data: [event1Data] });
+      tokenService = sinon.stub(EventTokenService.prototype, "getAuthToken").returns("test-token");
+      const getEventCodesStub = sinon.stub(eventQuery, "getEventCodes").resolves([{ code: "maven123" }]);
+
+      const payload = {
+        roomId: event1Data.id,
+        userId: "5678",
+        role: "maven",
+        eventCode: "maven123",
+      };
+
+      request
+        .execute(app)
+        .post("/events/join")
+        .send(payload)
+        .end((error, response) => {
+          getEventCodesStub.restore();
+          if (error) {
+            return done(error);
+          }
+
+          expect(response).to.have.status(201);
+          expect(response.body.token).to.be.equal("test-token");
+          expect(response.body.message).to.be.equal("Token generated successfully!");
+          expect(
+            tokenService.calledOnceWithExactly({ userId: payload.userId, role: payload.role, roomId: payload.roomId }),
+          ).to.be.equal(true);
+
+          return done();
+        });
+    });
+
+    it("should return 400 and no token when a maven joins with an invalid event code", function (done) {
+      service = sinon.stub(EventAPIService.prototype, "get").returns({ data: [event1Data] });
+      tokenService = sinon.stub(EventTokenService.prototype, "getAuthToken").returns("test-token");
+      const getEventCodesStub = sinon.stub(eventQuery, "getEventCodes").resolves([{ code: "maven123" }]);
+
+      const payload = {
+        roomId: event1Data.id,
+        userId: "5678",
+        role: "maven",
+        eventCode: "wrong-code",
+      };
+
+      request
+        .execute(app)
+        .post("/events/join")
+        .send(payload)
+        .end((error, response) => {
+          getEventCodesStub.restore();
+          if (error) {
+            return done(error);
+          }
+
+          expect(response).to.have.status(400);
+          expect(response.body).to.not.have.property("token");
+          expect(response.body.message).to.be.equal("Provided event code is invalid for the role!");
+          expect(tokenService.called).to.be.equal(false);
+
+          return done();
+        });
+    });
+
+    it("should return 401 and no token when a user who is not logged in requests the host role", function (done) {
+      service = sinon.stub(EventAPIService.prototype, "get").returns({ data: [event1Data] });
+      tokenService = sinon.stub(EventTokenService.prototype, "getAuthToken").returns("test-token");
+
+      const payload = {
+        roomId: event1Data.id,
+        userId: "5678",
+        role: "host",
+      };
+
+      request
+        .execute(app)
+        .post("/events/join")
+        .send(payload)
+        .end((error, response) => {
+          if (error) {
+            return done(error);
+          }
+
+          expect(response).to.have.status(401);
+          expect(response.body).to.not.have.property("token");
+          expect(response.body.message).to.be.equal("Unauthorized, please login to perform this action!");
+          expect(tokenService.called).to.be.equal(false);
+
+          return done();
+        });
+    });
+
+    it("should return 401 and no token when a user who is not logged in requests the moderator role", function (done) {
+      service = sinon.stub(EventAPIService.prototype, "get").returns({ data: [event1Data] });
+      tokenService = sinon.stub(EventTokenService.prototype, "getAuthToken").returns("test-token");
+
+      const payload = {
+        roomId: event1Data.id,
+        userId: "5678",
+        role: "moderator",
+      };
+
+      request
+        .execute(app)
+        .post("/events/join")
+        .send(payload)
+        .end((error, response) => {
+          if (error) {
+            return done(error);
+          }
+
+          expect(response).to.have.status(401);
+          expect(response.body).to.not.have.property("token");
+          expect(response.body.message).to.be.equal("Unauthorized, please login to perform this action!");
+          expect(tokenService.called).to.be.equal(false);
 
           return done();
         });
@@ -273,8 +393,8 @@ describe("events", function () {
       };
       tokenService = sinon.stub(EventTokenService.prototype, "getAuthToken").returns("test-token");
 
-      chai
-        .request(app)
+      request
+        .execute(app)
         .post("/events/join-admin")
         .set("cookie", `${cookieName}=${superUserAuthToken}`)
         .send(payload)
@@ -286,6 +406,9 @@ describe("events", function () {
           expect(response).to.have.status(201);
           expect(response.body.token).to.be.a("string");
           expect(response.body.message).to.be.a("string");
+          expect(
+            tokenService.calledOnceWithExactly({ userId: payload.userId, role: payload.role, roomId: payload.roomId }),
+          ).to.be.equal(true);
 
           return done();
         });
@@ -303,8 +426,8 @@ describe("events", function () {
       };
       tokenService = sinon.stub(EventTokenService.prototype, "getAuthToken").returns("test-token");
 
-      chai
-        .request(app)
+      request
+        .execute(app)
         .post("/events/join-admin")
         .set("cookie", `${cookieName}=${memberAuthToken}`)
         .send(payload)
@@ -316,6 +439,9 @@ describe("events", function () {
           expect(response).to.have.status(201);
           expect(response.body.token).to.be.a("string");
           expect(response.body.message).to.be.a("string");
+          expect(
+            tokenService.calledOnceWithExactly({ userId: payload.userId, role: payload.role, roomId: payload.roomId }),
+          ).to.be.equal(true);
 
           return done();
         });
@@ -330,8 +456,8 @@ describe("events", function () {
 
       tokenService = sinon.stub(EventTokenService.prototype, "getAuthToken").returns("test-token");
 
-      chai
-        .request(app)
+      request
+        .execute(app)
         .post("/events/join-admin")
         .set("cookie", `${cookieName}=${authToken}`)
         .send(payload)
@@ -343,6 +469,64 @@ describe("events", function () {
           expect(response.body.message).to.be.a("string");
           expect(response.body.error).to.be.equal("Unauthorized");
           expect(response.body.message).to.be.equal("You are not authorized for this action.");
+
+          return done();
+        });
+    });
+
+    it("should return 403 and no token when a member requests the host role", function (done) {
+      service = sinon.stub(EventAPIService.prototype, "get").returns({ data: [event1Data] });
+      tokenService = sinon.stub(EventTokenService.prototype, "getAuthToken").returns("test-token");
+
+      const payload = {
+        roomId: event1Data.id,
+        userId: "5678",
+        role: "host",
+      };
+
+      request
+        .execute(app)
+        .post("/events/join-admin")
+        .set("cookie", `${cookieName}=${memberAuthToken}`)
+        .send(payload)
+        .end((error, response) => {
+          if (error) {
+            return done(error);
+          }
+
+          expect(response).to.have.status(403);
+          expect(response.body).to.not.have.property("token");
+          expect(response.body.message).to.be.equal("Unauthorized, you don't have permission to join as host!");
+          expect(tokenService.called).to.be.equal(false);
+
+          return done();
+        });
+    });
+
+    it("should return 403 and no token when a super user without member role requests the moderator role", function (done) {
+      service = sinon.stub(EventAPIService.prototype, "get").returns({ data: [event1Data] });
+      tokenService = sinon.stub(EventTokenService.prototype, "getAuthToken").returns("test-token");
+
+      const payload = {
+        roomId: event1Data.id,
+        userId: "5678",
+        role: "moderator",
+      };
+
+      request
+        .execute(app)
+        .post("/events/join-admin")
+        .set("cookie", `${cookieName}=${superUserAuthToken}`)
+        .send(payload)
+        .end((error, response) => {
+          if (error) {
+            return done(error);
+          }
+
+          expect(response).to.have.status(403);
+          expect(response.body).to.not.have.property("token");
+          expect(response.body.message).to.be.equal("Unauthorized, you don't have permission to join as moderator!");
+          expect(tokenService.called).to.be.equal(false);
 
           return done();
         });
@@ -359,8 +543,8 @@ describe("events", function () {
     it("Should return event information if the event exists", function (done) {
       const roomId = event1Data.room_id;
       service = sinon.stub(EventAPIService.prototype, "get").returns(event1Data);
-      chai
-        .request(app)
+      request
+        .execute(app)
         .get(`/events/${roomId}`)
         .send({ isActiveRoom: false })
         .end((error, response) => {
@@ -383,8 +567,8 @@ describe("events", function () {
 
       service = sinon.stub(EventAPIService.prototype, "get").rejects(mockError);
 
-      chai
-        .request(app)
+      request
+        .execute(app)
         .get(`/events/${roomId}`)
         .send({ enabled: true })
         .end((error, response) => {
@@ -417,8 +601,8 @@ describe("events", function () {
       service = sinon.stub(EventAPIService.prototype, "post").returns(payload);
       sinon.stub(eventQuery, "updateEvent").resolves({ ...event1Data, enabled: true });
 
-      chai
-        .request(app)
+      request
+        .execute(app)
         .patch("/events")
         .set("cookie", `${cookieName}=${authToken}`)
         .send({ ...payload, id: event1Data.room_id })
@@ -444,8 +628,8 @@ describe("events", function () {
 
       sinon.stub(eventQuery, "updateEvent").resolves({ ...event1Data, enabled: false });
 
-      chai
-        .request(app)
+      request
+        .execute(app)
         .patch("/events")
         .set("cookie", `${cookieName}=${authToken}`)
         .send({ ...payload, id: event1Data.room_id })
@@ -463,8 +647,8 @@ describe("events", function () {
     });
 
     it("should return unauthorized error if user is not authenticated", function (done) {
-      chai
-        .request(app)
+      request
+        .execute(app)
         .patch(`/events`)
         .end((error, response) => {
           if (error) {
@@ -508,8 +692,8 @@ describe("events", function () {
 
       sinon.stub(eventQuery, "endActiveEvent").returns({ message: "Event ended successfully." });
 
-      chai
-        .request(app)
+      request
+        .execute(app)
         .patch("/events/end")
         .set("cookie", `${cookieName}=${superUserAuthToken}`)
         .set("cookie", `${cookieName}=${memberAuthToken}`)
@@ -533,8 +717,8 @@ describe("events", function () {
         eventCode: "test-code",
         role: "moderator",
       };
-      chai
-        .request(app)
+      request
+        .execute(app)
         .post(`/events/${id}/codes`)
         .send({ ...payload })
         .end((error, response) => {
@@ -579,8 +763,8 @@ describe("events", function () {
           { code: "test-code", role: "maven", id: "test-id", event_id: event1Data.room_id },
         ]);
 
-      chai
-        .request(app)
+      request
+        .execute(app)
         .post(`/events/${event1Data.room_id}/codes`)
         .set("cookie", `${cookieName}=${superUserAuthToken}`)
         .send({ ...payload })
@@ -604,8 +788,8 @@ describe("events", function () {
         eventCode: "test-code",
         role: "moderator",
       };
-      chai
-        .request(app)
+      request
+        .execute(app)
         .post(`/events/${id}/codes`)
         .set("cookie", `${cookieName}=${superUserAuthToken}`)
         .send({ ...payload })
@@ -633,8 +817,8 @@ describe("events", function () {
 
       service = sinon.stub(eventQuery, "createEventCode").throws(new Error(errorMessage));
 
-      chai
-        .request(app)
+      request
+        .execute(app)
         .post(`/events/${event1Data.room_id}/codes`)
         .set("cookie", `${cookieName}=${superUserAuthToken}`)
         .send({ ...payload })
@@ -656,8 +840,8 @@ describe("events", function () {
         eventCode: "test-code",
         role: "moderator",
       };
-      chai
-        .request(app)
+      request
+        .execute(app)
         .post(`/events/${id}/codes`)
         .send({ ...payload })
         .end((error, response) => {
@@ -692,8 +876,8 @@ describe("events", function () {
     it("should return all event codes based on event id", function (done) {
       service = sinon.stub(eventQuery, "getEventCodes").returns([...eventCodeData[1].data]);
 
-      chai
-        .request(app)
+      request
+        .execute(app)
         .get(`/events/${eventData[1].id}/codes`)
         .set("cookie", `${cookieName}=${superUserAuthToken}`)
         .end((error, response) => {
@@ -711,8 +895,8 @@ describe("events", function () {
     it("should return something went wrong while getting the event codes!", function (done) {
       service = sinon.stub(eventQuery, "getEventCodes").throws(new Error());
 
-      chai
-        .request(app)
+      request
+        .execute(app)
         .get(`/events/${eventData[1].id}/codes`)
         .set("cookie", `${cookieName}=${superUserAuthToken}`)
         .end((error, response) => {
@@ -759,8 +943,8 @@ describe("events", function () {
       sinon.stub(logsModel, "addLog");
       sinon.stub(eventQuery, "getPeerById").returns(eventOnePeerData);
 
-      chai
-        .request(app)
+      request
+        .execute(app)
         .patch(`/events/${event1Data.room_id}/peers/kickout`)
         .set("cookie", `${cookieName}=${superUserAuthToken}`)
         .send(payload)
@@ -789,8 +973,8 @@ describe("events", function () {
       sinon.stub(logsModel, "addLog");
       sinon.stub(eventQuery, "getPeerById").returns(eventOnePeerData);
 
-      chai
-        .request(app)
+      request
+        .execute(app)
         .patch(`/events/${event1Data.room_id}/peers/kickout`)
         .set("cookie", `${cookieName}=${memberAuthToken}`)
         .send(payload)
@@ -808,8 +992,8 @@ describe("events", function () {
     });
 
     it("should return unauthorized error if user is not authenticated", function (done) {
-      chai
-        .request(app)
+      request
+        .execute(app)
         .patch(`/events/${event1Data.room_id}/peers/kickout`)
         .end((error, response) => {
           if (error) {

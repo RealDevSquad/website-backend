@@ -1,5 +1,4 @@
-const admin = require("firebase-admin");
-const Firestore = require("@google-cloud/firestore");
+const { Timestamp, FieldValue } = require("firebase-admin/firestore");
 const firestore = require("../utils/firestore");
 const logger = require("../utils/logger");
 
@@ -107,7 +106,7 @@ const addPeerToEvent = async (peerData) => {
     } else {
       // If the peer document exists, update the joinedEvents array
       batch.update(peerRef, {
-        joinedEvents: Firestore.FieldValue.arrayUnion({
+        joinedEvents: FieldValue.arrayUnion({
           event_id: peerData.eventId,
           role: peerData.role,
           joined_at: peerData.joinedAt,
@@ -117,7 +116,7 @@ const addPeerToEvent = async (peerData) => {
 
     const eventRef = eventModel.doc(peerData.eventId);
     batch.update(eventRef, {
-      peers: Firestore.FieldValue.arrayUnion(peerRef.id),
+      peers: FieldValue.arrayUnion(peerRef.id),
     });
 
     await batch.commit();
@@ -180,7 +179,7 @@ const kickoutPeer = async ({ eventId, peerId, reason }) => {
     }
 
     const updatedJoinedEvents = joinedEvents.map((event, index) =>
-      index === eventIndex ? { ...event, left_at: new Date(), reason: reason, isKickedout: true } : event
+      index === eventIndex ? { ...event, left_at: new Date(), reason, isKickedout: true } : event,
     );
 
     await peerRef.update({ joinedEvents: updatedJoinedEvents });
@@ -205,7 +204,7 @@ const createEventCode = async (eventCodeData) => {
     const eventRef = eventModel.doc(eventCodeData.event_id);
     const eventSnapshot = await eventRef.get();
     const eventSnapshotData = eventSnapshot.data();
-    const createdAndUpdatedAt = admin.firestore.Timestamp.now();
+    const createdAndUpdatedAt = Timestamp.now();
     const docRef = eventCodeModel.doc(eventCodeData.id);
 
     await docRef.set({ ...eventCodeData, created_at: createdAndUpdatedAt, updated_at: createdAndUpdatedAt });

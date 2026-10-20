@@ -28,23 +28,19 @@ This Project serves the backend APIs required for [Real Dev Squad](https://reald
 
 ## Starting Local Development
 
-Please install `yarn` and `volta`
-
-[Why Volta?](https://docs.volta.sh/guide/#why-volta)
-
-To install Volta, please follow the [process](https://docs.volta.sh/guide/getting-started)
+Please install `pnpm` version 12 (see [pnpm installation](https://pnpm.io/installation)).
+No separate node version manager is needed: this repo pins node 26.8.1 via the
+`devEngines.runtime` field in `package.json`, so pnpm automatically downloads and uses
+the correct node for all scripts (`pnpm dev`, `pnpm test`, …). Verify with
+`pnpm exec node --version`, which should print `v26.8.1`.
 
 ### Local Development Setup
 
-Install all the packages using the following command:
+Install all the packages with a frozen lockfile, so versions stay exactly
+as locked:
 
 ```shell
-yarn
-```
-Now if one runs yarn install. The yarn.lock will be unexpectedly updated with an unknown future version of a dependency, potentially breaking the build in the future. To ensure that the yarn.lock file is not update, you will need to use the --frozen-lockfile flag.
-
-```shell
-yarn install --frozen-lockfile
+pnpm install --frozen-lockfile
 ```
 
 #### Confirm correct configuration setup
@@ -53,7 +49,7 @@ This command should be successful, before moving to development.
 
 
 ```shell
-yarn validate-setup
+pnpm validate-setup
 ```
 
 #### TDD Local Development
@@ -65,42 +61,29 @@ Head over to [TDD Tests Files List](scripts/tests/tdd-files-list.txt), and add t
 Run TDD in watch mode. Exiting this command will print the coverage report. Try to achieve 100% coverage.
 
 ```shell
-yarn tdd:watch
+pnpm tdd:watch
 ```
 
 #### Running a server in Dev mode
 
 ```shell
-yarn dev
+pnpm dev
 ```
 
-## What happens in production:
+## Production build and start
 
-- Install packages
+`typescript` (which provides `tsc`) is a `devDependency` on purpose — it is
+only needed to compile, not to run. So always build **before** pruning
+dev dependencies:
 
-```
-yarn
-```
-
-- Run tests
-
-```
-yarn run test
-```
-
-- Prune dev dependencies
-
-```
-npm prune --production
+```shell
+pnpm install --frozen-lockfile
+pnpm test
+pnpm run build # emits dist/ via tsc (tsconfig.json: outDir dist)
+pnpm start     # runs node ./dist/server.js, does NOT rebuild
 ```
 
-- Run start command (with port information)
-
-```
-yarn start
-```
-
-Note: These are handled automatically behind the scene when pushing to [Heroku](https://devcenter.heroku.com/)
+For local dev use `pnpm dev` (runs `ts-node-dev server.js`, no `dist/` needed).
 
 Check out our video on how to setup the backend here: [Wiki link](https://github.com/Real-Dev-Squad/website-backend/wiki/Backend-setup-and-understanding-the-flow)
 
