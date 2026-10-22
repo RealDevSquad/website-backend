@@ -147,14 +147,14 @@ rds-session-staging
   - [nock](https://github.com/nock/nock/blob/main/README.md): HTTP requests mocking
 - The test suite uses [Firebase Local Emulator Suite](https://firebase.google.com/docs/emulator-suite) for running firestore for tests([documentation](https://firebase.google.com/docs/emulator-suite/install_and_configure)).
 - Pre-requisites:
-  - Node.js 26.8.1 (installed automatically by pnpm, see README).
+  - Node.js 26.12.1 (installed automatically by pnpm, see README).
   - Java version 21 or higher (required by firebase-tools 15+).
 
 ## Using Firebase Emulator Locally
 
 - [Firebase Local Emulator Suite](https://firebase.google.com/docs/emulator-suite) can be used locally as the DB for the project
 - Pre-requisites:
-  - Node.js 26.8.1 (installed automatically by pnpm, see README).
+  - Node.js 26.12.1 (installed automatically by pnpm, see README).
   - Java version 21 or higher (required by firebase-tools 15+).
 - Run: `npx firebase emulators:start`
 - The emulator will run and display the url you can access it on.
