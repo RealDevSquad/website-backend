@@ -32,10 +32,7 @@ const createEvent = async (req, res) => {
     return res.status(201).json(eventDataFromDB);
   } catch (error) {
     logger.error({ error });
-    return res.status(500).json({
-      error: error.code,
-      message: "Couldn't create event. Please try again later",
-    });
+    return res.boom.badImplementation("Couldn't create event. Please try again later");
   }
 };
 
@@ -77,10 +74,7 @@ const getAllEvents = async (req, res) => {
     return res.status(200).json(eventsData);
   } catch (error) {
     logger.error({ error });
-    return res.status(500).json({
-      error: error.code,
-      message: "Couldn't get events. Please try again later",
-    });
+    return res.boom.badImplementation("Couldn't get events. Please try again later");
   }
 };
 
@@ -103,30 +97,22 @@ const joinEvent = async (req, res) => {
       const isEventCodeValid = eventCodes.some(({ code }) => code === eventCode);
 
       if (!isEventCodeValid) {
-        return res.status(400).json({
-          message: "Provided event code is invalid for the role!",
-        });
+        return res.boom.badRequest("Provided event code is invalid for the role!");
       }
     }
 
     if ((role === EVENT_ROLES.HOST || role === EVENT_ROLES.MODERATOR) && !req.userData) {
-      return res.status(401).json({
-        message: "Unauthorized, please login to perform this action!",
-      });
+      return res.boom.unauthorized("Unauthorized, please login to perform this action!");
     }
 
     const { super_user: isSuperUser, member: isMember } = req.userData?.roles ?? {};
 
     if (role === EVENT_ROLES.HOST && !isSuperUser) {
-      return res.status(403).json({
-        message: "Unauthorized, you don't have permission to join as host!",
-      });
+      return res.boom.forbidden("Unauthorized, you don't have permission to join as host!");
     }
 
     if (role === EVENT_ROLES.MODERATOR && !isMember) {
-      return res.status(403).json({
-        message: "Unauthorized, you don't have permission to join as moderator!",
-      });
+      return res.boom.forbidden("Unauthorized, you don't have permission to join as moderator!");
     }
 
     const token = tokenService.getAuthToken({ userId, role, roomId });
@@ -164,10 +150,7 @@ const getEventById = async (req, res) => {
     return res.status(200).json(eventData);
   } catch (error) {
     logger.error({ error });
-    return res.status(500).json({
-      error: error.code,
-      message: "Unable to retrieve event details",
-    });
+    return res.boom.badImplementation("Unable to retrieve event details");
   }
 };
 
@@ -195,10 +178,7 @@ const updateEvent = async (req, res) => {
     });
   } catch (error) {
     logger.error({ error });
-    return res.status(500).json({
-      error,
-      message: "Couldn't update event. Please try again later.",
-    });
+    return res.boom.badImplementation("Couldn't update event. Please try again later.");
   }
 };
 
@@ -223,10 +203,7 @@ const endActiveEvent = async (req, res) => {
     return res.status(200).json({ message: `Event ended successfully.` });
   } catch (error) {
     logger.error({ error });
-    return res.status(500).json({
-      error: error.code,
-      message: "Couldn't end the event. Please try again later",
-    });
+    return res.boom.badImplementation("Couldn't end the event. Please try again later");
   }
 };
 
@@ -255,10 +232,7 @@ const addPeerToEvent = async (req, res) => {
     });
   } catch (error) {
     logger.error({ error });
-    return res.status(500).json({
-      error: error.code,
-      message: "You can't add selected Participant. Please ask Admin or Host for help.",
-    });
+    return res.boom.badImplementation("You can't add selected Participant. Please ask Admin or Host for help.");
   }
 };
 
@@ -294,10 +268,9 @@ const kickoutPeer = async (req, res) => {
     });
   } catch (error) {
     logger.error({ error });
-    return res.status(500).json({
-      error: error.code,
-      message: "You can't remove selected Participant from Remove, Please ask Admin or Host for help.",
-    });
+    return res.boom.badImplementation(
+      "You can't remove selected Participant from Remove, Please ask Admin or Host for help.",
+    );
   }
 };
 
@@ -308,9 +281,7 @@ const generateEventCode = async (req, res) => {
   const eventCodeUuid = crypto.randomUUID({ disableEntropyCache: true });
 
   if (role !== EVENT_ROLES.MAVEN) {
-    return res.status(400).json({
-      message: "Currently the room codes feature is only for mavens!",
-    });
+    return res.boom.badRequest("Currently the room codes feature is only for mavens!");
   }
 
   try {
@@ -323,10 +294,7 @@ const generateEventCode = async (req, res) => {
     return res.status(201).json({ message: "Event code created succesfully!", data: [...allEventCodeObjectFromDB] });
   } catch (error) {
     logger.error({ error });
-    return res.status(500).json({
-      error: error.code,
-      message: "Couldn't create event code. Please try again later",
-    });
+    return res.boom.badImplementation("Couldn't create event code. Please try again later");
   }
 };
 
@@ -352,10 +320,7 @@ const getEventCodes = async (req, res) => {
     });
   } catch (error) {
     logger.error({ error });
-    return res.status(500).json({
-      error: error.code,
-      message: "Something went wrong while getting the event codes!",
-    });
+    return res.boom.badImplementation("Something went wrong while getting the event codes!");
   }
 };
 
