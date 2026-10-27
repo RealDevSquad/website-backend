@@ -95,57 +95,41 @@ const getAllEvents = async (req, res) => {
  */
 const joinEvent = async (req, res) => {
   const { roomId, userId, role, eventCode } = req.body;
-  const payload = { userId, role };
 
   try {
     if (role === EVENT_ROLES.MAVEN) {
       const eventCodes = await eventQuery.getEventCodes({ id: roomId });
-      const allEventCodesArray = eventCodes.map((eventCode) => {
-        return eventCode.code;
-      });
 
-      const isEventCodeValid = allEventCodesArray.includes(eventCode);
+      const isEventCodeValid = eventCodes.some(({ code }) => code === eventCode);
 
       if (!isEventCodeValid) {
         return res.status(400).json({
           message: "Provided event code is invalid for the role!",
         });
       }
-      const token = tokenService.getAuthToken({ ...payload, roomId });
+    }
 
-      return res.status(201).json({
-        token,
-        message: "Token generated successfully!",
+    if ((role === EVENT_ROLES.HOST || role === EVENT_ROLES.MODERATOR) && !req.userData) {
+      return res.status(401).json({
+        message: "Unauthorized, please login to perform this action!",
       });
     }
 
-    if (role === EVENT_ROLES.HOST || role === EVENT_ROLES.MODERATOR) {
-      if (!req.userData) {
-        return res.status(400).json({
-          message: "Unauthorized, please login to perform this action!",
-        });
-      }
+    const { super_user: isSuperUser, member: isMember } = req.userData?.roles ?? {};
 
-      if (role === EVENT_ROLES.HOST && req.userData.roles.super_user) {
-        const token = tokenService.getAuthToken({ ...payload, roomId });
-
-        return res.status(201).json({
-          token,
-          message: "Token generated successfully!",
-        });
-      }
-
-      if (role === EVENT_ROLES.MODERATOR && req.userData.roles.member) {
-        const token = tokenService.getAuthToken({ ...payload, roomId });
-
-        return res.status(201).json({
-          token,
-          message: "Token generated successfully!",
-        });
-      }
+    if (role === EVENT_ROLES.HOST && !isSuperUser) {
+      return res.status(403).json({
+        message: "Unauthorized, you don't have permission to join as host!",
+      });
     }
 
-    const token = tokenService.getAuthToken({ ...payload, roomId });
+    if (role === EVENT_ROLES.MODERATOR && !isMember) {
+      return res.status(403).json({
+        message: "Unauthorized, you don't have permission to join as moderator!",
+      });
+    }
+
+    const token = tokenService.getAuthToken({ userId, role, roomId });
 
     return res.status(201).json({
       token,

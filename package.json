@@ -16,7 +16,7 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@aws-sdk/client-identitystore": "3.1131.0",
+    "@aws-sdk/client-identitystore": "3.1142.0",
     "axios": "1.20.0",
     "cloudinary": "2.11.0",
     "config": "5.0.1",
@@ -41,7 +41,7 @@
     "passport": "0.7.0",
     "passport-github2": "0.1.12",
     "passport-google-oauth20": "^2.0.0",
-    "rate-limiter-flexible": "11.2.0",
+    "rate-limiter-flexible": "11.2.1",
     "winston": "3.19.0"
   },
   "devDependencies": {
@@ -58,7 +58,7 @@
     "chai": "6.2.2",
     "chai-http": "5.1.2",
     "cross-env": "10.1.0",
-    "eslint": "10.10.0",
+    "eslint": "10.11.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-config-standard": "17.1.0",
     "eslint-plugin-import": "^2.32.0",
