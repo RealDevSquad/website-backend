@@ -123,7 +123,7 @@ const joinEvent = async (req, res) => {
       });
     }
 
-    if (role === EVENT_ROLES.MODERATOR && !isMember) {
+    if (role === EVENT_ROLES.MODERATOR && !isMember && !isSuperUser) {
       return res.status(403).json({
         message: "Unauthorized, you don't have permission to join as moderator!",
       });
