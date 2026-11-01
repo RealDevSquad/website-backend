@@ -156,7 +156,7 @@ rds-session-staging
 - Pre-requisites:
   - Node.js 26.8.1 (installed automatically by pnpm, see README).
   - Java version 21 or higher (required by firebase-tools 15+).
-- Run: `npx firebase emulators:start`
+- Run: `pnpm exec firebase emulators:start`
 - The emulator will run and display the url you can access it on.
 - You can view the emulator UI at: `http://localhost:4000`
 - To run the application with using firebase emulator, run the following command([docs](https://firebase.google.com/docs/emulator-suite/connect_firestore#admin_sdks)):
