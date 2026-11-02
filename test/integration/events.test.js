@@ -503,7 +503,7 @@ describe("events", function () {
         });
     });
 
-    it("should return a token when a super user without member role requests the moderator role", function (done) {
+    it("should return a token when a super user requests the moderator role", function (done) {
       service = sinon.stub(EventAPIService.prototype, "get").returns({ data: [event1Data] });
       tokenService = sinon.stub(EventTokenService.prototype, "getAuthToken").returns("test-token");
 
