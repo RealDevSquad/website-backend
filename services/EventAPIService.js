@@ -53,8 +53,8 @@ class EventAPIService {
   }
 
   // A method for GET requests using the configured Axios instance
-  async get(path, queryParams) {
-    const res = await this.#axiosInstance.get(path, { params: queryParams });
+  async get(path, queryParams, config = {}) {
+    const res = await this.#axiosInstance.get(path, { ...config, params: queryParams });
     logger.info(`get call to path - ${path}, status code - ${res.status}`);
     return res.data;
   }

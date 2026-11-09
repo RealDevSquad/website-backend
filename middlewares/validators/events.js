@@ -70,6 +70,20 @@ const getEventById = async (req, res, next) => {
   }
 };
 
+const getParticipantsCount = async (req, res, next) => {
+  const schema = joi.object({
+    id: joi.string().hex().length(24).required(),
+  });
+
+  try {
+    await schema.validateAsync(req.params);
+    next();
+  } catch (error) {
+    logger.error(`Error validating participants count request: ${error}`);
+    res.boom.badRequest(error.details[0].message);
+  }
+};
+
 const updateEvent = async (req, res, next) => {
   const schema = joi.object({
     id: joi.string().required(),
@@ -189,6 +203,7 @@ module.exports = {
   getAllEvents,
   joinEvent,
   getEventById,
+  getParticipantsCount,
   updateEvent,
   endActiveEvent,
   addPeerToEvent,

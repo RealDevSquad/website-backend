@@ -1,4 +1,11 @@
-const { GET_ALL_EVENTS_LIMIT_MIN, UNWANTED_PROPERTIES_FROM_100MS, EVENT_ROLES } = require("../constants/events");
+const {
+  GET_ALL_EVENTS_LIMIT_MIN,
+  UNWANTED_PROPERTIES_FROM_100MS,
+  EVENT_ROLES,
+  PARTICIPANTS_COUNT_CACHE_TTL_MS,
+  PARTICIPANTS_COUNT_TIMEOUT_MS,
+  EVENT_LIVE_STATUS,
+} = require("../constants/events");
 const { INTERNAL_SERVER_ERROR } = require("../constants/errorMessages");
 const { EventTokenService, EventAPIService } = require("../services");
 const eventQuery = require("../models/events");
@@ -359,11 +366,115 @@ const getEventCodes = async (req, res) => {
   }
 };
 
+const participantsCountCache = new Map();
+const participantsCountInFlight = new Map();
+
+/**
+ * Asks 100ms who is connected right now and counts them by role.
+ * @param {string} roomId - The event / 100ms room id.
+ * @returns {Promise<{total: number, byRole: Object}>}
+ */
+const fetchParticipantsCountFrom100ms = async (roomId) => {
+  const data = await apiService.get(`/active-rooms/${roomId}/peers`, {}, { timeout: PARTICIPANTS_COUNT_TIMEOUT_MS });
+  // 100ms returns peers as an object keyed by peer id, not an array
+  const peers = Object.values(data?.peers || {});
+
+  const byRole = Object.fromEntries(Object.values(EVENT_ROLES).map((role) => [role, 0]));
+  peers.forEach((peer) => {
+    if (peer.role in byRole) byRole[peer.role] += 1;
+  });
+
+  return { total: peers.length, byRole };
+};
+
+/**
+ * Returns the cached count if it is still fresh, otherwise fetches it from 100ms.
+ * Concurrent requests for the same event share one 100ms call. Failures are not cached.
+ * @param {string} roomId - The event / 100ms room id.
+ * @returns {Promise<{counts: Object, expiresAt: number}>}
+ */
+const getParticipantsCountWithCache = async (roomId) => {
+  const cached = participantsCountCache.get(roomId);
+  if (cached && cached.expiresAt > Date.now()) return cached;
+
+  if (participantsCountInFlight.has(roomId)) return participantsCountInFlight.get(roomId);
+
+  const request = fetchParticipantsCountFrom100ms(roomId)
+    .then((counts) => {
+      const entry = { counts, expiresAt: Date.now() + PARTICIPANTS_COUNT_CACHE_TTL_MS };
+      participantsCountCache.set(roomId, entry);
+      return entry;
+    })
+    .finally(() => {
+      participantsCountInFlight.delete(roomId);
+    });
+
+  participantsCountInFlight.set(roomId, request);
+  return request;
+};
+
+/**
+ * Returns the live participant count of an event, by role.
+ * @async
+ * @function
+ * @param {Object} req - The Express request object.
+ * @param {Object} res - The Express response object.
+ * @returns {Object} The participant count in JSON format.
+ */
+const getParticipantsCount = async (req, res) => {
+  const { id } = req.params;
+
+  let event;
+  try {
+    event = await eventQuery.getEventById({ id });
+  } catch (error) {
+    logger.error({ error });
+    return res.boom.badImplementation(INTERNAL_SERVER_ERROR);
+  }
+
+  if (!event) {
+    return res.boom.notFound("Event not found");
+  }
+
+  if (!event.enabled) {
+    if (event.status === EVENT_LIVE_STATUS.INACTIVE) {
+      return res.status(200).json({
+        message: "Event has ended",
+        data: { status: EVENT_LIVE_STATUS.INACTIVE, total: null, byRole: null },
+      });
+    }
+    return res.status(200).json({
+      message: "Event is not live",
+      data: { status: EVENT_LIVE_STATUS.NOT_LIVE, total: null, byRole: null },
+    });
+  }
+
+  try {
+    const { counts, expiresAt } = await getParticipantsCountWithCache(id);
+    return res.status(200).json({
+      message: "Participants count fetched successfully",
+      data: {
+        status: EVENT_LIVE_STATUS.LIVE,
+        total: counts.total,
+        byRole: counts.byRole,
+        refreshAfterMs: Math.max(expiresAt - Date.now(), 0),
+      },
+    });
+  } catch (error) {
+    logger.error({ error });
+    return res.status(502).json({
+      error: error.code,
+      message: "Unable to fetch participants count",
+    });
+  }
+};
+
 module.exports = {
   createEvent,
   getAllEvents,
   joinEvent,
   getEventById,
+  getParticipantsCount,
   updateEvent,
   endActiveEvent,
   addPeerToEvent,
