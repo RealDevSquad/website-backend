@@ -403,6 +403,9 @@ const getParticipantsCountWithCache = async (roomId) => {
     .then((counts) => {
       const entry = { counts, expiresAt: Date.now() + PARTICIPANTS_COUNT_CACHE_TTL_MS };
       participantsCountCache.set(roomId, entry);
+      setTimeout(() => {
+        if (participantsCountCache.get(roomId) === entry) participantsCountCache.delete(roomId);
+      }, PARTICIPANTS_COUNT_CACHE_TTL_MS).unref();
       return entry;
     })
     .finally(() => {
