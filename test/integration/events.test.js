@@ -652,7 +652,7 @@ describe("events", function () {
       expect(res.body.data).to.deep.equal({
         status: "live",
         total: 4,
-        byRole: { host: 1, moderator: 1, maven: 0, guest: 2 },
+        countsByRole: { host: 1, moderator: 1, maven: 0, guest: 2 },
         refreshAfterMs: 5000,
       });
       expect(stub.calledOnce).to.equal(true);
@@ -669,7 +669,7 @@ describe("events", function () {
       expect(res).to.have.status(200);
       expect(res.body.data.status).to.equal("live");
       expect(res.body.data.total).to.equal(0);
-      expect(res.body.data.byRole).to.deep.equal({ host: 0, moderator: 0, maven: 0, guest: 0 });
+      expect(res.body.data.countsByRole).to.deep.equal({ host: 0, moderator: 0, maven: 0, guest: 0 });
       expect(stub.calledOnce).to.equal(true);
     });
 
@@ -683,8 +683,8 @@ describe("events", function () {
       const res = await getCount(roomId);
 
       expect(res).to.have.status(200);
-      expect(res.body.data.byRole.maven).to.equal(0);
-      expect(res.body.data.byRole.moderator).to.equal(0);
+      expect(res.body.data.countsByRole.maven).to.equal(0);
+      expect(res.body.data.countsByRole.moderator).to.equal(0);
     });
 
     it("returns 502 when the 100ms request fails", async function () {
@@ -758,8 +758,8 @@ describe("events", function () {
 
       expect(res).to.have.status(200);
       expect(res.body).to.have.all.keys("message", "data");
-      expect(res.body.data).to.have.all.keys("status", "total", "byRole", "refreshAfterMs");
-      expect(res.body.data.byRole).to.have.all.keys(...Object.values(EVENT_ROLES));
+      expect(res.body.data).to.have.all.keys("status", "total", "countsByRole", "refreshAfterMs");
+      expect(res.body.data.countsByRole).to.have.all.keys(...Object.values(EVENT_ROLES));
       expect(JSON.stringify(res.body)).to.not.include("Some User");
       expect(JSON.stringify(res.body)).to.not.include("peer-1");
       expect(JSON.stringify(res.body)).to.not.include("user-1");
@@ -830,9 +830,9 @@ describe("events", function () {
 
       expect(stub.calledTwice).to.equal(true);
       expect(resA.body.data.total).to.equal(1);
-      expect(resA.body.data.byRole.host).to.equal(1);
+      expect(resA.body.data.countsByRole.host).to.equal(1);
       expect(resB.body.data.total).to.equal(3);
-      expect(resB.body.data.byRole.guest).to.equal(3);
+      expect(resB.body.data.countsByRole.guest).to.equal(3);
     });
 
     it("returns 502 when the 100ms request times out", async function () {
@@ -860,7 +860,7 @@ describe("events", function () {
       expect(res).to.have.status(200);
       expect(res.body).to.deep.equal({
         message: "Event is not live",
-        data: { status: "not_live", total: null, byRole: null },
+        data: { status: "not_live", total: null, countsByRole: null },
       });
       expect(stub.called).to.equal(false);
     });
@@ -875,7 +875,7 @@ describe("events", function () {
       expect(res).to.have.status(200);
       expect(res.body).to.deep.equal({
         message: "Event has ended",
-        data: { status: "inactive", total: null, byRole: null },
+        data: { status: "inactive", total: null, countsByRole: null },
       });
       expect(stub.called).to.equal(false);
     });
@@ -892,10 +892,10 @@ describe("events", function () {
 
       expect(live.body.data.status).to.equal("live");
       expect(live.body.data.total).to.equal(0);
-      expect(live.body.data.byRole).to.deep.equal({ host: 0, moderator: 0, maven: 0, guest: 0 });
+      expect(live.body.data.countsByRole).to.deep.equal({ host: 0, moderator: 0, maven: 0, guest: 0 });
       expect(ended.body.data.status).to.equal("inactive");
       expect(ended.body.data.total).to.equal(null);
-      expect(ended.body.data.byRole).to.equal(null);
+      expect(ended.body.data.countsByRole).to.equal(null);
     });
   });
 

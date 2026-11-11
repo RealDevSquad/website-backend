@@ -372,19 +372,19 @@ const participantsCountInFlight = new Map();
 /**
  * Asks 100ms who is connected right now and counts them by role.
  * @param {string} roomId - The event / 100ms room id.
- * @returns {Promise<{total: number, byRole: Object}>}
+ * @returns {Promise<{total: number, countsByRole: Object}>}
  */
 const fetchParticipantsCountFrom100ms = async (roomId) => {
   const data = await apiService.get(`/active-rooms/${roomId}/peers`, {}, { timeout: PARTICIPANTS_COUNT_TIMEOUT_MS });
   // 100ms returns peers as an object keyed by peer id, not an array
   const peers = Object.values(data?.peers || {});
 
-  const byRole = Object.fromEntries(Object.values(EVENT_ROLES).map((role) => [role, 0]));
+  const countsByRole = Object.fromEntries(Object.values(EVENT_ROLES).map((role) => [role, 0]));
   peers.forEach((peer) => {
-    if (peer.role in byRole) byRole[peer.role] += 1;
+    if (peer.role in countsByRole) countsByRole[peer.role] += 1;
   });
 
-  return { total: peers.length, byRole };
+  return { total: peers.length, countsByRole };
 };
 
 /**
@@ -443,12 +443,12 @@ const getParticipantsCount = async (req, res) => {
     if (event.status === EVENT_LIVE_STATUS.INACTIVE) {
       return res.status(200).json({
         message: "Event has ended",
-        data: { status: EVENT_LIVE_STATUS.INACTIVE, total: null, byRole: null },
+        data: { status: EVENT_LIVE_STATUS.INACTIVE, total: null, countsByRole: null },
       });
     }
     return res.status(200).json({
       message: "Event is not live",
-      data: { status: EVENT_LIVE_STATUS.NOT_LIVE, total: null, byRole: null },
+      data: { status: EVENT_LIVE_STATUS.NOT_LIVE, total: null, countsByRole: null },
     });
   }
 
@@ -459,7 +459,7 @@ const getParticipantsCount = async (req, res) => {
       data: {
         status: EVENT_LIVE_STATUS.LIVE,
         total: counts.total,
-        byRole: counts.byRole,
+        countsByRole: counts.countsByRole,
         refreshAfterMs: Math.max(expiresAt - Date.now(), 0),
       },
     });
