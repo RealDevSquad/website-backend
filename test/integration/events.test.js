@@ -638,7 +638,7 @@ describe("events", function () {
       sinon.restore();
     });
 
-    it("returns status live with the total and the count for each role", async function () {
+    it("returns the total and the count for each role", async function () {
       const roomId = newRoomId();
       await addEvent(roomId);
       const stub = sinon
@@ -650,7 +650,6 @@ describe("events", function () {
       expect(res).to.have.status(200);
       expect(res.body.message).to.equal("Participants count fetched successfully");
       expect(res.body.data).to.deep.equal({
-        status: "live",
         total: 4,
         countsByRole: { host: 1, moderator: 1, maven: 0, guest: 2 },
         refreshAfterMs: 5000,
@@ -667,7 +666,6 @@ describe("events", function () {
       const res = await getCount(roomId);
 
       expect(res).to.have.status(200);
-      expect(res.body.data.status).to.equal("live");
       expect(res.body.data.total).to.equal(0);
       expect(res.body.data.countsByRole).to.deep.equal({ host: 0, moderator: 0, maven: 0, guest: 0 });
       expect(stub.calledOnce).to.equal(true);
@@ -758,7 +756,7 @@ describe("events", function () {
 
       expect(res).to.have.status(200);
       expect(res.body).to.have.all.keys("message", "data");
-      expect(res.body.data).to.have.all.keys("status", "total", "countsByRole", "refreshAfterMs");
+      expect(res.body.data).to.have.all.keys("total", "countsByRole", "refreshAfterMs");
       expect(res.body.data.countsByRole).to.have.all.keys(...Object.values(EVENT_ROLES));
       expect(JSON.stringify(res.body)).to.not.include("Some User");
       expect(JSON.stringify(res.body)).to.not.include("peer-1");
@@ -850,7 +848,7 @@ describe("events", function () {
       expect(res.body).to.not.have.property("data");
     });
 
-    it("returns status not_live with null counts for a disabled event without calling 100ms", async function () {
+    it("returns null counts for a disabled event without calling 100ms", async function () {
       const roomId = newRoomId();
       await addEvent(roomId, { enabled: false });
       const stub = sinon.stub(EventAPIService.prototype, "get");
@@ -860,12 +858,12 @@ describe("events", function () {
       expect(res).to.have.status(200);
       expect(res.body).to.deep.equal({
         message: "Event is not live",
-        data: { status: "not_live", total: null, countsByRole: null },
+        data: { total: null, countsByRole: null },
       });
       expect(stub.called).to.equal(false);
     });
 
-    it("returns status inactive with null counts for an ended event without calling 100ms", async function () {
+    it("returns null counts for an ended event without calling 100ms", async function () {
       const roomId = newRoomId();
       await addEvent(roomId, { enabled: false, status: "inactive" });
       const stub = sinon.stub(EventAPIService.prototype, "get");
@@ -875,7 +873,7 @@ describe("events", function () {
       expect(res).to.have.status(200);
       expect(res.body).to.deep.equal({
         message: "Event has ended",
-        data: { status: "inactive", total: null, countsByRole: null },
+        data: { total: null, countsByRole: null },
       });
       expect(stub.called).to.equal(false);
     });
@@ -890,10 +888,8 @@ describe("events", function () {
       const live = await getCount(liveRoomId);
       const ended = await getCount(endedRoomId);
 
-      expect(live.body.data.status).to.equal("live");
       expect(live.body.data.total).to.equal(0);
       expect(live.body.data.countsByRole).to.deep.equal({ host: 0, moderator: 0, maven: 0, guest: 0 });
-      expect(ended.body.data.status).to.equal("inactive");
       expect(ended.body.data.total).to.equal(null);
       expect(ended.body.data.countsByRole).to.equal(null);
     });

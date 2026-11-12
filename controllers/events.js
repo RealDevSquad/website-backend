@@ -4,7 +4,7 @@ const {
   EVENT_ROLES,
   PARTICIPANTS_COUNT_CACHE_TTL_MS,
   PARTICIPANTS_COUNT_TIMEOUT_MS,
-  EVENT_LIVE_STATUS,
+  EVENT_STATUS_INACTIVE,
 } = require("../constants/events");
 const { INTERNAL_SERVER_ERROR } = require("../constants/errorMessages");
 const { EventTokenService, EventAPIService } = require("../services");
@@ -440,15 +440,15 @@ const getParticipantsCount = async (req, res) => {
   }
 
   if (!event.enabled) {
-    if (event.status === EVENT_LIVE_STATUS.INACTIVE) {
+    if (event.status === EVENT_STATUS_INACTIVE) {
       return res.status(200).json({
         message: "Event has ended",
-        data: { status: EVENT_LIVE_STATUS.INACTIVE, total: null, countsByRole: null },
+        data: { total: null, countsByRole: null },
       });
     }
     return res.status(200).json({
       message: "Event is not live",
-      data: { status: EVENT_LIVE_STATUS.NOT_LIVE, total: null, countsByRole: null },
+      data: { total: null, countsByRole: null },
     });
   }
 
@@ -457,7 +457,6 @@ const getParticipantsCount = async (req, res) => {
     return res.status(200).json({
       message: "Participants count fetched successfully",
       data: {
-        status: EVENT_LIVE_STATUS.LIVE,
         total: counts.total,
         countsByRole: counts.countsByRole,
         refreshAfterMs: Math.max(expiresAt - Date.now(), 0),
