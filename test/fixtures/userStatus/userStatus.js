@@ -224,6 +224,39 @@ const generateDefaultFutureStatus = (state, from, until) => {
   return futureStatusData;
 };
 
+const generateOooUserStatusDoc = (
+  userId,
+  today,
+  {
+    currentStatusFromOffset = -24 * 60 * 60 * 1000,
+    currentStatusUntilOffset = 2 * 24 * 60 * 60 * 1000,
+    futureStatusFromOffset,
+  } = {}
+) => {
+  const currentFrom = today + currentStatusFromOffset;
+  return {
+    userId,
+    currentStatus: {
+      state: userState.OOO,
+      from: currentFrom,
+      until: today + currentStatusUntilOffset,
+      message: "On leave",
+      updatedAt: currentFrom,
+    },
+    futureStatus: {
+      state: userState.ACTIVE,
+      from: today + futureStatusFromOffset,
+      until: "",
+      message: "",
+      updatedAt: today - 24 * 60 * 60 * 1000,
+    },
+    monthlyHours: {
+      committed: 40,
+      updatedAt: currentFrom,
+    },
+  };
+};
+
 module.exports = {
   userStatusDataForNewUser,
   userStatusDataAfterSignup,
@@ -239,4 +272,5 @@ module.exports = {
   inputFixtureForFnConvertTimestampsToUTC,
   OutputFixtureForFnConvertTimestampsToUTC,
   generateDefaultFutureStatus,
+  generateOooUserStatusDoc,
 };
