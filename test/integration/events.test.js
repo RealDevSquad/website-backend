@@ -584,8 +584,27 @@ describe("events", function () {
         });
     });
 
+    it("Should return 400 if the room id is not a valid id", function (done) {
+      service = sinon.stub(EventAPIService.prototype, "get");
+
+      request
+        .execute(app)
+        .get(`/events/${encodeURIComponent("../rooms")}`)
+        .end((error, response) => {
+          if (error) {
+            return done(error);
+          }
+
+          expect(response).to.have.status(400);
+          expect(response.body.message).to.equal("Invalid event id");
+          expect(service.called).to.equal(false);
+
+          return done();
+        });
+    });
+
     it("Should return 500 if an error occurs while retrieving the room information", function (done) {
-      const roomId = "invalid-room-id";
+      const roomId = "aaaaaaaaaaaaaaaaaaaaaaaa";
       const mockError = { code: "ERR_BAD_REQUEST", message: "Unable to retrieve event details" };
 
       service = sinon.stub(EventAPIService.prototype, "get").rejects(mockError);
