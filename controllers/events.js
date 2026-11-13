@@ -369,6 +369,8 @@ const getEventCodes = async (req, res) => {
   }
 };
 
+// Stored in this process's memory only. If the backend runs as multiple instances,
+// each keeps its own cache, so their counts can differ by up to PARTICIPANTS_COUNT_CACHE_TTL_MS.
 const participantsCountCache = new Map();
 const participantsCountInFlight = new Map();
 
@@ -388,8 +390,15 @@ const fetchParticipantsCountFrom100ms = async (roomId) => {
       timeout: PARTICIPANTS_COUNT_TIMEOUT_MS,
     },
   );
-  // 100ms returns peers as an object keyed by peer id, not an array
-  const peers = Object.values(data?.peers || {});
+  // 100ms returns peers as an object keyed by peer id; an empty room is `peers: {}`.
+  // Anything else is an unexpected response, so fail instead of reporting 0 participants.
+  const rawPeers = data?.peers;
+  if (rawPeers === null || typeof rawPeers !== "object" || Array.isArray(rawPeers)) {
+    const error = new Error("Unexpected response shape from 100ms active-rooms peers API");
+    error.code = "INVALID_100MS_RESPONSE";
+    throw error;
+  }
+  const peers = Object.values(rawPeers);
 
   const countsByRole = Object.fromEntries(Object.values(EVENT_ROLES).map((role) => [role, 0]));
   peers.forEach((peer) => {

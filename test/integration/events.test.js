@@ -715,6 +715,44 @@ describe("events", function () {
       expect(res.body).to.deep.equal({ error: "ERR_BAD_REQUEST", message: "Unable to fetch participants count" });
     });
 
+    [
+      ["no peers key", {}],
+      ["null peers", { peers: null }],
+      ["an array of peers", { peers: [] }],
+      ["a string for peers", { peers: "oops" }],
+      ["no body", undefined],
+    ].forEach(([label, body]) => {
+      it(`returns 502 when the 100ms response has ${label}`, async function () {
+        const roomId = newRoomId();
+        await addEvent(roomId);
+        sinon.stub(EventAPIService.prototype, "get").resolves(body);
+
+        const res = await getCount(roomId);
+
+        expect(res).to.have.status(502);
+        expect(res.body).to.deep.equal({
+          error: "INVALID_100MS_RESPONSE",
+          message: "Unable to fetch participants count",
+        });
+      });
+    });
+
+    it("does not cache an invalid 100ms response", async function () {
+      const roomId = newRoomId();
+      await addEvent(roomId);
+      const stub = sinon.stub(EventAPIService.prototype, "get");
+      stub.onFirstCall().resolves({});
+      stub.onSecondCall().resolves(peersResponse([EVENT_ROLES.GUEST]));
+
+      const first = await getCount(roomId);
+      const second = await getCount(roomId);
+
+      expect(first).to.have.status(502);
+      expect(second).to.have.status(200);
+      expect(second.body.data.total).to.equal(1);
+      expect(stub.calledTwice).to.equal(true);
+    });
+
     it("serves a repeated request within the cache time from the cache", async function () {
       const roomId = newRoomId();
       await addEvent(roomId);
