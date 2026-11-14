@@ -55,7 +55,11 @@ const getEventById = async (req, res, next) => {
   const { isActiveRoom } = req.query;
 
   const schema = joi.object({
-    id: joi.string().required(),
+    id: joi
+      .string()
+      .pattern(/^[a-f0-9]{24}$/i)
+      .required()
+      .messages({ "*": "Invalid event id" }),
     isActiveRoom: joi.boolean(),
   });
 
@@ -67,6 +71,20 @@ const getEventById = async (req, res, next) => {
   } catch (error) {
     logger.error(`Error retrieving event: ${error}`);
     res.boom.badRequest(error.details.map((detail) => detail.message));
+  }
+};
+
+const getParticipantsCount = async (req, res, next) => {
+  const schema = joi.object({
+    id: joi.string().hex().length(24).required(),
+  });
+
+  try {
+    await schema.validateAsync(req.params);
+    next();
+  } catch (error) {
+    logger.error(`Error validating participants count request: ${error}`);
+    res.boom.badRequest(error.details[0].message);
   }
 };
 
@@ -189,6 +207,7 @@ module.exports = {
   getAllEvents,
   joinEvent,
   getEventById,
+  getParticipantsCount,
   updateEvent,
   endActiveEvent,
   addPeerToEvent,
