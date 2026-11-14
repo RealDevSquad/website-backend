@@ -55,7 +55,11 @@ const getEventById = async (req, res, next) => {
   const { isActiveRoom } = req.query;
 
   const schema = joi.object({
-    id: joi.string().required(),
+    id: joi
+      .string()
+      .pattern(/^[a-f0-9]{24}$/i)
+      .required()
+      .messages({ "*": "Invalid event id" }),
     isActiveRoom: joi.boolean(),
   });
 

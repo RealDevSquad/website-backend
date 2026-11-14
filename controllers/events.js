@@ -160,9 +160,6 @@ const joinEvent = async (req, res) => {
 const getEventById = async (req, res) => {
   const roomId = req.params.id;
   const isActiveRoom = req.body.isActiveRoom;
-  if (!/^[a-f0-9]{24}$/i.test(roomId)) {
-    return res.boom.badRequest("Invalid event id");
-  }
   try {
     const url = `/${isActiveRoom ? "active-" : ""}rooms/${encodeURIComponent(roomId)}`;
     const eventData = await apiService.get(url);
