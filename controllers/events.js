@@ -418,7 +418,8 @@ const getParticipantsCountWithCache = async (roomId) => {
   const cached = participantsCountCache.get(roomId);
   if (cached && cached.expiresAt > Date.now()) return cached;
 
-  if (participantsCountInFlight.has(roomId)) return participantsCountInFlight.get(roomId);
+  const inFlight = participantsCountInFlight.get(roomId);
+  if (inFlight) return inFlight;
 
   const request = fetchParticipantsCountFrom100ms(roomId)
     .then((counts) => {
