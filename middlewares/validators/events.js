@@ -68,7 +68,7 @@ const getEventById = async (req, res, next) => {
     next();
   } catch (error) {
     logger.error(`Error retrieving event: ${error}`);
-    res.boom.badRequest(error.details.map((detail) => detail.message));
+    res.boom.badRequest(error.details[0].message);
   }
 };
 
