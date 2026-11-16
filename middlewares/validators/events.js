@@ -1,5 +1,7 @@
 const joi = require("joi");
 
+const eventIdSchema = joi.string().hex().length(24).required().messages({ "*": "Invalid event id" });
+
 const createEvent = async (req, res, next) => {
   const schema = joi.object({
     name: joi.string().required(),
@@ -55,11 +57,7 @@ const getEventById = async (req, res, next) => {
   const { isActiveRoom } = req.query;
 
   const schema = joi.object({
-    id: joi
-      .string()
-      .pattern(/^[a-f0-9]{24}$/i)
-      .required()
-      .messages({ "*": "Invalid event id" }),
+    id: eventIdSchema,
     isActiveRoom: joi.boolean(),
   });
 
@@ -76,7 +74,7 @@ const getEventById = async (req, res, next) => {
 
 const getParticipantsCount = async (req, res, next) => {
   const schema = joi.object({
-    id: joi.string().hex().length(24).required(),
+    id: eventIdSchema,
   });
 
   try {
