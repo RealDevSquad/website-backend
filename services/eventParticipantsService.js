@@ -15,9 +15,6 @@ const participantsCountInFlight = new Map();
  * @returns {Promise<{total: number, countsByRole: Object}>}
  */
 const fetchParticipantsCountFrom100ms = async (roomId) => {
-  if (!/^[a-f0-9]{24}$/i.test(roomId)) {
-    throw new Error("Invalid room id");
-  }
   const data = await apiService.get(
     `/active-rooms/${encodeURIComponent(roomId)}/peers`,
     {},
