@@ -1,6 +1,12 @@
-const { GET_ALL_EVENTS_LIMIT_MIN, UNWANTED_PROPERTIES_FROM_100MS, EVENT_ROLES } = require("../constants/events");
+const {
+  GET_ALL_EVENTS_LIMIT_MIN,
+  UNWANTED_PROPERTIES_FROM_100MS,
+  EVENT_ROLES,
+  EVENT_STATUS_INACTIVE,
+} = require("../constants/events");
 const { INTERNAL_SERVER_ERROR } = require("../constants/errorMessages");
 const { EventTokenService, EventAPIService } = require("../services");
+const { getParticipantsCountWithCache } = require("../services/eventParticipantsService");
 const eventQuery = require("../models/events");
 
 const logger = require("../utils/logger");
@@ -155,7 +161,7 @@ const getEventById = async (req, res) => {
   const roomId = req.params.id;
   const isActiveRoom = req.body.isActiveRoom;
   try {
-    const url = `/${isActiveRoom ? "active-" : ""}rooms/${roomId}`;
+    const url = `/${isActiveRoom ? "active-" : ""}rooms/${encodeURIComponent(roomId)}`;
     const eventData = await apiService.get(url);
     if (!isActiveRoom) {
       const event = removeUnwantedProperties(UNWANTED_PROPERTIES_FROM_100MS, eventData);
@@ -359,11 +365,67 @@ const getEventCodes = async (req, res) => {
   }
 };
 
+/**
+ * Returns the live participant count of an event, by role.
+ * @async
+ * @function
+ * @param {Object} req - The Express request object.
+ * @param {Object} res - The Express response object.
+ * @returns {Object} The participant count in JSON format.
+ */
+const getParticipantsCount = async (req, res) => {
+  const { id } = req.params;
+
+  let event;
+  try {
+    event = await eventQuery.getEventById({ id });
+  } catch (error) {
+    logger.error({ error });
+    return res.boom.badImplementation(INTERNAL_SERVER_ERROR);
+  }
+
+  if (!event) {
+    return res.boom.notFound("Event not found");
+  }
+
+  if (!event.enabled) {
+    if (event.status === EVENT_STATUS_INACTIVE) {
+      return res.status(200).json({
+        message: "Event has ended",
+        data: { total: null, countsByRole: null },
+      });
+    }
+    return res.status(200).json({
+      message: "Event is not live",
+      data: { total: null, countsByRole: null },
+    });
+  }
+
+  try {
+    const { counts, expiresAt } = await getParticipantsCountWithCache(id);
+    return res.status(200).json({
+      message: "Participants count fetched successfully",
+      data: {
+        total: counts.total,
+        countsByRole: counts.countsByRole,
+        refreshAfterMs: Math.max(expiresAt - Date.now(), 0),
+      },
+    });
+  } catch (error) {
+    logger.error({ error });
+    return res.status(502).json({
+      error: error.code,
+      message: "Unable to fetch participants count",
+    });
+  }
+};
+
 module.exports = {
   createEvent,
   getAllEvents,
   joinEvent,
   getEventById,
+  getParticipantsCount,
   updateEvent,
   endActiveEvent,
   addPeerToEvent,
