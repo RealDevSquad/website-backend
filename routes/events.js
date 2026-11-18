@@ -17,6 +17,7 @@ router.post(
 );
 router.post("/join", eventsValidator.joinEvent, events.joinEvent);
 router.get("/:id", eventsValidator.getEventById, events.getEventById);
+router.get("/:id/participants", eventsValidator.getParticipantsCount, events.getParticipantsCount);
 router.patch("/", authenticate, eventsValidator.updateEvent, events.updateEvent);
 router.patch(
   "/end",
