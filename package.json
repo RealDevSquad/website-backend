@@ -81,13 +81,13 @@
     "typescript": "5.9.3"
   },
   "engines": {
-    "node": "26.8.1",
+    "node": "26.12.1",
     "pnpm": ">=12 <13"
   },
   "devEngines": {
     "runtime": {
       "name": "node",
-      "version": "26.8.1",
+      "version": "26.12.1",
       "onFail": "download"
     },
     "packageManager": {
